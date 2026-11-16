@@ -50,7 +50,64 @@ function praan_docx_history(string $title, array $rows, array $cols): string {
     }
     return $xml;
 }
+/** Editable 3-page template, closely matching the A4 print: styled A-H sections and grid cells. */
+function praan_docx_template_binary(array $volunteer): string {
+    $template=__DIR__.'/../resources/praan_print_layout_3page.docx';
+    if(!is_file($template))throw new RuntimeException('PRAAN DOCX template missing');
+    if(!class_exists('ZipArchive'))throw new RuntimeException('PHP ZipArchive extension চালু করুন।');
+    $d=$volunteer['data']??[];
+    $values=$d;
+    foreach($values as $key=>$value)$values[$key]=display_value($value);
+    $values['form_no']=(string)$volunteer['form_no'];
+    $values['volunteer_code']=(string)$volunteer['volunteer_code'];
+    $values['registration_date']=(string)($d['registration_date']?:($volunteer['registered_on']??''));
+    $values['age_reported']=(string)($d['age_reported']?:age_from_date((string)($d['dob']??'')));
+    $values['present_address']=implode(' · ',array_filter(array_map('trim',array_map('strval',array_intersect_key($d,array_flip(['present_holding','present_village','present_ward','present_union','present_upazila','present_district']))))));
+    $values['permanent_address']=implode(' · ',array_filter(array_map('trim',array_map('strval',array_intersect_key($d,array_flip(['permanent_holding','permanent_village','permanent_ward','permanent_union','permanent_upazila','permanent_district']))))));
+    $values['emergency_details']=trim((string)($d['emergency_relation']??'').' · '.(string)($d['emergency_phone']??''),' ·');
+    $values['volunteer_sign']=trim((string)($d['volunteer_sign_name']??'').' · '.(string)($d['volunteer_sign_date']??''),' ·');
+    $values['collector_sign']=trim((string)($d['collector_sign_name']??'').' · '.(string)($d['collector_sign_date']??''),' ·');
+    $values['consents']='';
+    foreach(form_sections()['F']['fields']['consents'][2] as $key=>$label) {
+        $values['consents'].=(in_array($key,(array)($d['consents']??[]),true)?'☑ ':'☐ ').$label.'   ';
+    }
+    foreach(['interests'=>'interests_other','digital_skills'=>'digital_skills_other','attachments'=>'attachments_other'] as $main=>$extra){
+        if(!empty($d[$extra]))$values[$main]=trim((string)($values[$main]??'').' · '.(string)$d[$extra]);
+    }
+    if(!empty($d['google_drive_link']))$values['attachments']=trim((string)$values['attachments'].' · Drive: '.(string)$d['google_drive_link']);
+    foreach(['work'=>['work_history',['org','duty','area','period','reference']], 'training'=>['training_history',['title','organizer','period','certificate']]] as $prefix=>$info){
+        foreach(range(0,3) as $i)foreach($info[1] as $j=>$key) $values[$prefix.'_'.$i.'_'.$j]=(string)($d[$info[0]][$i][$key]??'');
+    }
+    $path=tempnam(sys_get_temp_dir(),'praan_form_');if(!$path)throw new RuntimeException('Temporary file unavailable');
+    if(!copy($template,$path)){@unlink($path);throw new RuntimeException('DOCX template could not be copied');}
+    $zip=new ZipArchive();
+    if($zip->open($path)!==true){@unlink($path);throw new RuntimeException('DOCX could not be opened');}
+    try{
+        $xml=$zip->getFromName('word/document.xml');if(!is_string($xml))throw new RuntimeException('Invalid Word template');
+        $xml=preg_replace_callback('/\[\[([a-z][a-z0-9_]*)\]\]/',static function($m)use($values){return praan_docx_xml($values[$m[1]]??'');},$xml);
+        if(!is_string($xml))throw new RuntimeException('Could not fill DOCX template');
+        $zip->addFromString('word/document.xml',$xml);
+        $picture=(string)($volunteer['photo_file']??'');$photoPath=PHOTO_DIR.'/'.basename($picture);
+        if($picture!=='' && is_file($photoPath) && filesize($photoPath)<=4000000 && extension_loaded('gd')){
+            $info=@getimagesize($photoPath);
+            if(is_array($info) && in_array($info[2],[IMAGETYPE_JPEG,IMAGETYPE_PNG,IMAGETYPE_WEBP],true)){
+                $binary=file_get_contents($photoPath);$source=$binary?@imagecreatefromstring($binary):false;
+                if($source!==false){
+                    $image=imagecreatetruecolor(180,220);$fill=imagecolorallocate($image,243,247,249);imagefill($image,0,0,$fill);
+                    $w=imagesx($source);$h=imagesy($source);$ratio=max(180/$w,220/$h);$sw=(int)round(180/$ratio);$sh=(int)round(220/$ratio);
+                    imagecopyresampled($image,$source,0,0,max(0,(int)(($w-$sw)/2)),max(0,(int)(($h-$sh)/2)),180,220,min($sw,$w),min($sh,$h));
+                    ob_start();imagepng($image);$photoPng=ob_get_clean();imagedestroy($source);imagedestroy($image);
+                    if(is_string($photoPng))$zip->addFromString('word/media/image1.png',$photoPng);
+                }
+            }
+        }
+    }finally{$zip->close();}
+    $binary=file_get_contents($path);@unlink($path);
+    if(!is_string($binary)||strlen($binary)<2000)throw new RuntimeException('DOCX could not be generated');
+    return $binary;
+}
 function praan_docx_binary(array $volunteer): string {
+    if(is_file(__DIR__.'/../resources/praan_print_layout_3page.docx'))return praan_docx_template_binary($volunteer);
     if(!class_exists('ZipArchive')) throw new RuntimeException('PHP ZipArchive extension চালু করুন।');
     $d=$volunteer['data']??[];$sections=form_sections();
     $xml=praan_docx_drawing('rIdLogo',810000,255000,2,'PRAAN logo');

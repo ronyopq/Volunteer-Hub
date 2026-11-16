@@ -1,0 +1,14 @@
+/* v2.0 production/security-center; isolated from the standard dashboard. */
+.praan-v2-intro{padding:24px 26px;border-radius:16px;background:linear-gradient(125deg,#0d3348,#117c81);color:#fff;margin-bottom:20px;box-shadow:0 12px 24px #102b3c18}
+.praan-v2-intro .eyebrow{color:#9fe0e2;letter-spacing:.12em;font-weight:700;font-size:11px}
+.praan-v2-intro h2{font-weight:800;margin:8px 0;font-size:clamp(1.35rem,2.5vw,2.1rem)}
+.praan-v2-intro p{margin:0;color:#e0f2f3;max-width:760px}
+.praan-v2-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.praan-v2-kpi{padding:17px;border-radius:13px;background:var(--bs-body-bg,#fff);border:1px solid var(--bs-border-color,#dae4e7);min-width:0}
+.praan-v2-kpi>i{color:#118387;font-size:22px}.v2-kpi-num{font-size:clamp(1.6rem,2.3vw,2.3rem);font-weight:800;line-height:1.4}
+.v2-kpi-label{color:var(--bs-secondary-color,#667);font-size:12px;overflow-wrap:anywhere}
+.praan-v2-checks{display:grid;gap:2px}.praan-v2-check{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--bs-border-color,#ddd);padding:13px 0}
+.praan-v2-check:last-child{border-bottom:0}.praan-v2-check small{display:block;color:var(--bs-secondary-color,#888);margin:2px 0 0 28px}
+.praan-privacy-action{display:grid;min-width:160px;gap:5px}.praan-privacy-action input,.praan-privacy-action select{min-width:0}
+@media(max-width:1100px){.praan-v2-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.praan-v2-intro{padding:19px}.praan-v2-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.praan-v2-kpi{padding:13px}}

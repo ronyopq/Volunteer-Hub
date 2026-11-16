@@ -25,13 +25,15 @@ function praan_permissions(): array {
       'backup.manage'=>'ডাটাবেইস ও ফাইল ব্যাকআপ',
       'modules.view'=>'Module Registry ও Health দেখা',
       'modules.manage'=>'বিশ্বস্ত মডিউল ও Feature Flags পরিচালনা',
+      'security.view'=>'Security ও Privacy Center দেখা',
+      'security.manage'=>'Security housekeeping ও Privacy Request নিষ্পত্তি',
     ];
 }
 function praan_role_presets(): array {
     $all=array_keys(praan_permissions());
     return [
       'super_admin'=>['Super Admin',$all,true],
-      'admin'=>['Administrator',array_values(array_diff($all,['users.manage','roles.manage','sessions.manage','updates.manage','modules.manage'])),true],
+      'admin'=>['Administrator',array_values(array_diff($all,['users.manage','roles.manage','sessions.manage','updates.manage','modules.manage','security.manage'])),true],
       'data_entry'=>['Data Entry Operator',['dashboard.view','volunteers.view','volunteers.sensitive','volunteers.create','volunteers.edit'],true],
       'verifier'=>['Verifier',['dashboard.view','volunteers.view','volunteers.sensitive','volunteers.edit','volunteers.approve','reports.view'],true],
       'viewer'=>['Viewer',['dashboard.view','volunteers.view','reports.view'],true],
@@ -118,7 +120,7 @@ function praan_can(string $permission): bool {
 }
 function praan_require(string $permission): void {
     if(!admin()){redirect('login');}
-    if(!praan_can($permission)){http_response_code(403);header('Cache-Control: no-store');exit('403 — আপনার এই কাজের অনুমতি নেই।');}
+    if(!praan_can($permission)){if(function_exists('praan_error_page'))praan_error_page(403);http_response_code(403);exit('অনুমতি নেই।');}
 }
 function praan_route_permission(string $page): ?string {
     $map=[
@@ -133,6 +135,8 @@ function praan_route_permission(string $page): ?string {
       'download_docx'=>'volunteers.export','activity'=>'audit.view',
       'settings'=>'settings.manage','settings_save_pro'=>'settings.manage','settings_save'=>'settings.manage',
       'background_upload'=>'settings.manage','background_delete'=>'settings.manage',
+      'notifications'=>'dashboard.view','notification_poll'=>'dashboard.view',
+      'notification_read'=>'dashboard.view','notification_read_all'=>'dashboard.view','notification_send'=>'users.manage',
       'system_doctor'=>'updates.manage','system_doctor_export'=>'updates.manage','update_progress'=>'updates.manage','update_recover'=>'updates.manage','update_migrate'=>'updates.manage',
       'updates'=>'updates.manage','update_key_save'=>'updates.manage','update_maintenance'=>'updates.manage',
       'update_install'=>'updates.manage','update_rollback'=>'updates.manage','update_repo_save'=>'updates.manage',
@@ -145,6 +149,8 @@ function praan_route_permission(string $page): ?string {
       'login_history'=>'audit.view',
       'modules'=>'modules.view','modules_export'=>'modules.view',
       'module_state'=>'modules.manage','module_options'=>'modules.manage','module_flag'=>'modules.manage',
+      'security_center'=>'security.view','privacy_desk'=>'security.view',
+      'privacy_create'=>'security.manage','privacy_resolve'=>'security.manage','security_cleanup'=>'security.manage',
     ];return $map[$page]??null;
 }
 function praan_authorize_route(string $page): void {

@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-/** PRAAN v1.9.0 operations: conservative, additive migrations and private diagnostic state. */
+/** PRAAN v1.9+ operations: conservative, additive migrations and private diagnostic state. */
 const PRAAN_PROGRESS_FILE = UM_STORAGE . '/update-progress.json';
 const PRAAN_TX_FILE = UM_STORAGE . '/update-transaction.json';
 

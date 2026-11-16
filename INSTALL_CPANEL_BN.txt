@@ -1,61 +1,69 @@
-PRAAN v1.9.0 — cPanel/Apache ইনস্টলেশন ও স্বাস্থ্য পরীক্ষা
-==================================================
+PRAAN Volunteer Management v2.2.1 — cPanel আপডেট নির্দেশিকা
+=========================================================
 
-এটি v1.8.0 থেকে v1.9.0-এ আপডেট। সাইটের মূল URL:
-https://app.praan.org.bd/a/volunteer/
+এই প্যাকেজ app.praan.org.bd/a/volunteer/ পাথে বসানোর জন্য তৈরি।
 
-নিরাপদ আপডেট (cPanel দিয়ে প্রথম ইনস্টল)
----------------------------------------
-১) বর্তমান সম্পূর্ণ a/volunteer/ ফোল্ডার ও ডাটাবেইসের আলাদা ব্যাকআপ নিন।
-   storage/pran.sqlite, storage/photos/, storage/update_signer.pub, storage/update_backups/
-   এবং অন্যান্য private storage/config/backup/history আলাদা করে রাখুন।
-২) সম্ভব হলে লাইভ সাইটের কপি আলাদা staging URL-এ পরীক্ষা করুন।
-৩) cPanel File Manager থেকে app.praan.org.bd-র Document Root-এ যান।
-   `a/volunteer/` ফোল্ডারে ZIP খুলে ভেতরের ফাইলগুলো সরাসরি Overwrite করুন।
-   ZIP-এর জন্য অতিরিক্ত সাবফোল্ডার বানাবেন না।
-৪) `storage/` মুছবেন না এবং নতুন ZIP দিয়ে database replace করবেন না।
-৫) PHP 8.1+, pdo_sqlite, zip, sodium, curl, fileinfo এবং gd Extension পরীক্ষা করুন।
-৬) PHP File Permission ও `storage/` Directory Permission ঠিক আছে কি না দেখুন।
-৭) ব্রাউজারে Ctrl + Shift + R দিয়ে Refresh করুন।
-৮) Super Admin হিসেবে Login করে System Doctor খুলুন:
-   https://app.praan.org.bd/a/volunteer/index.php?page=system_doctor
-৯) Site Update Center-এ যান, 'Additive Database Migrations' থেকে
-   `Backup + Validate + Migrate` একবার চালান। এতে ব্যাকআপ হবে, নতুন টেবিল যোগ হবে।
-   আগে চালানো migration পুনরায় চালানো হবে না।
-১০) Verified Backup তৈরি ও Download করে অন্য নিরাপদ জায়গায় সংরক্ষণ করুন।
+১) প্রথমে cPanel থেকে সম্পূর্ণ সাইটের, SQLite-এর এবং ছবির BACKUP নিন। বিশেষভাবে:
+   storage/pran.sqlite
+   storage/photos/
+   storage/update_signer.pub
+   storage/update_backups/
+   storage/maintenance.json
+   (এগুলো মুছবেন বা খালি ফাইল দিয়ে প্রতিস্থাপন করবেন না।)
 
-Security / Access
------------------
-- `https://app.praan.org.bd/a/volunteer/storage/DO_NOT_SERVE_TEST.txt`
-  পরীক্ষা করলে HTTP 403/404 পাওয়া উচিত; HTTP 200 দেখলে এখনই ডাটা এন্ট্রি বন্ধ করুন।
-- src/, tools/, storage/, resources/, modules/ ফোল্ডার HTTP থেকে বন্ধ থাকা প্রয়োজন।
-- HTTPS চালু রাখুন; Admin Login History ও Permission পরীক্ষা করুন।
-- কোনো সোর্স কোড ZIP-এ ব্যক্তিগত স্বেচ্ছাসেবক তথ্য রাখা হয়নি।
+২) আপনার সাবডোমেইনের Document Root অনুযায়ী a/volunteer/ ফোল্ডারে যান।
+   নতুন ZIP-এর সব প্রোগ্রাম ফাইল সেই ফোল্ডারের সরাসরি root-এ রাখুন।
+   ZIP Extract করার পরে index.php এবং .htaccess a/volunteer/ এর ভেতরে থাকতে হবে।
+   পুরোনো SQLite, ছবি, signing key ও backup ফাইল অক্ষত রাখুন।
 
-GitHub One-Click Update (পরবর্তী Release থেকে)
----------------------------------------------
-১) Update Center-এ owner/repository লিখুন (শুধু পাবলিক Repo)।
-২) অফলাইন Release Signer দিয়ে তৈরি Ed25519 Public Key এখানে একবার সেট করুন।
-   Private Signing Key কখনো সাইটে রাখবেন না; GitHub-এও রাখবেন না।
-৩) OFFLINE-এ `php tools/release_signer.php package ...` দিয়ে তিনটি asset তৈরি করুন:
-    pran-update-vX.Y.Z.zip
-    pran-update-vX.Y.Z.zip.sha256
-    pran-update-vX.Y.Z.zip.sig
-   একই ভার্সনের GitHub Release (tag `vX.Y.Z`) হিসেবে তিনটি ফাইল প্রকাশ করুন।
-৪) Super Admin-কে release verify, backup ও install নিশ্চিত করতে হবে।
-৫) AJAX UI-তে Download → Verify → Maintenance → Backup → Install → Migration → Done
-   progress দেখা যাবে। ব্রাউজারের ট্যাব খোলা রাখুন এবং কাজের মাঝখানে রিফ্রেশ করবেন না।
-৬) সমস্যা হলে Update Center-এর Recovery অথবা Verified Code Rollback ব্যবহার করুন।
-   অটোমেটিক rollback ব্যর্থ হলে Maintenance Mode বন্ধ না করে cPanel দিয়ে restore করুন।
+৩) cPanel MultiPHP/Select PHP থেকে PHP 8.1+; pdo_sqlite, sqlite3, curl,
+   zip, sodium, fileinfo, gd সক্রিয় আছে কি না পরীক্ষা করুন।
+   GitHub Update-এর জন্য আউটবাউন্ড HTTPS (api.github.com) প্রয়োজন।
 
-IMPORTANT
----------
-* One-click update শুধু স্বাক্ষরিত/বিশ্বস্ত GitHub Release-এ কাজ করে। সাধারণ ZIP মানেই
-  trusted release নয়। File SHA-256 checksum নিজেরা publish করলেই authenticity হয় না;
-  trusted Ed25519 public key জরুরি।
-* Rollback আগের কোড ফিরিয়ে আনে; নতুন SQLite Volunteer data বা ছবি মুছে দেয় না।
-  Additive Migration-এ নতুন টেবিল/কলাম থেকে যেতে পারে।
-* PHP crash/disk-full/অর্ধেক লেখা PHP ফাইল হলে Web Recovery খুলতে নাও পারে;
-  তাই আপনার আলাদা cPanel/offsite ব্যাকআপ অপরিহার্য।
-* Laravel/Composer/Artisan এই প্রজেক্টের অংশ নয়। Migration এই অ্যাপের নিজস্ব PHP runner।
-* আপনার লাইভ সাইটে এখানে থেকে ফাইল আপলোড করা হয়নি; নিজে স্টেজিংয়ে পরীক্ষা করে Deploy করুন।
+৪) /a/volunteer/index.php?page=system_doctor
+   /a/volunteer/index.php?page=updates
+   /a/volunteer/index.php?page=notifications
+   এই তিনটি পৃষ্ঠা Super Admin হিসেবে খুলে পরীক্ষা করুন।
+   Ctrl + Shift + R চাপুন; OPcache থাকলে PHP version switch/restart দিয়ে cache পরিষ্কার করতে পারেন।
+
+৫) GitHub রিপো ডিফল্ট: ronyopq/Volunteer-Hub
+   System > Settings-এ GitHub auto-check চালু রাখতে পারবেন এবং 6/12/24 ঘণ্টা নির্বাচন করতে পারবেন।
+   Update Center-এ 'এখন যাচাই' চাপলে তৎক্ষণাৎ চেষ্টা করবে।
+   নতুন Commit এলে নোটিফিকেশন হবে, কিন্তু তা ইনস্টলযোগ্য Release নয়।
+
+৬) নিরবচ্ছিন্ন/সাইটে কেউ না ঢুকলেও স্বয়ংক্রিয় পরীক্ষা চাইলে cPanel > Cron Jobs:
+   0 */6 * * * /usr/local/bin/php /ABSOLUTE/PATH/TO/a/volunteer/tools/check_github_updates.php
+   সার্ভারের আসল PHP binary ও absolute path ব্যবহার করুন। এটি শুধু CLI থেকে চলবে।
+   এটি কোনো সোর্স-কোড স্বয়ংক্রিয়ভাবে ইনস্টল করে না; শুধু ডাটা চেক ও অ্যাডমিনদের নোটিফিকেশন তৈরি করে।
+
+৭) One-Click Update ব্যবহার করতে অবশ্যই নিজস্ব Trusted Ed25519 Public Key বসাতে হবে।
+   Offline release signer (tools/release_signer.php) দিয়ে তিনটি সম্পদ বানিয়ে GitHub Release-এ দিন:
+   pran-update-vX.Y.Z.zip
+   pran-update-vX.Y.Z.zip.sha256
+   pran-update-vX.Y.Z.zip.sig
+   Release tag: vX.Y.Z। শুধুমাত্র Super Admin পাসওয়ার্ড + UPDATE confirmation দিয়ে ইনস্টল করবেন।
+   PRIVATE KEY কখনো GitHub বা Hosting-এ দেবেন না।
+
+৮) Error Pages: 403/404/500/503 HTML ফাইল errors/ ফোল্ডারে আছে।
+   .htaccess এর ErrorDocument path /a/volunteer/ ধরে লেখা।
+   ভিন্ন path হলে ErrorDocument path পরিবর্তন করুন।
+   PHP error এ 'ERR-...' দেখালে storage/runtime-errors.jsonl ও private PHP log দেখুন।
+   এই লগ কেবল সার্ভার অ্যাডমিনের জন্য; কখনো পাবলিক করবেন না।
+
+নিরাপত্তা: কোনও production database বা ব্যবহারকারীর ব্যক্তিগত তথ্য এই ZIP-এ নেই।
+প্রথমবার আপডেটটি cPanel দিয়ে ইনস্টল করুন; তারপর পরবর্তী signed GitHub Release ব্যবহার করা যাবে।
+
+
+নতুন SMART IMPORT (v2.2.1)
+-------------------------
+১) Super Admin/Admin হয়ে ?page=import খুলুন।
+২) আগে থেকে থাকা volunteers ও ছবির সম্পূর্ণ ব্যাকআপ নিন।
+৩) আপনার Excel (27 rows / 119 columns) অথবা দেওয়া Import-Ready CSV বেছে নিন।
+৪) "Update Existing + Import New" সিলেক্ট থাকলে আগের ID/NID মিলে যাওয়া রেকর্ডে কেবল পূরণ করা ফিল্ড আপডেট হবে; বাকি নতুন হবে।
+৫) "Only New Records" চাইলে পুরোনোগুলোর পরিবর্তন হবে না।
+৬) Preview-তে প্রতিটি সারির New / Update / Review / Invalid যাচাই করে Confirm করুন।
+৭) নতুন ও আপডেটের মোট সংখ্যা মেলান; Review সারি থাকলে সংশ্লিষ্ট রেকর্ড ম্যানুয়ালি যাচাই করুন।
+৮) একই নাম এবং শেয়ার্ড মোবাইলের কারণে রেকর্ড বাদ দেওয়া হবে না।
+
+সতর্কতা: একই NID-এর বিপরীত তথ্য বা এক ফাইলে এক Volunteer ID একাধিকবার থাকলে রেকর্ড নিরাপত্তার কারণে Review-তে যাবে।
+PHP ZIP ও DOM না থাকলে .xlsx-এর বদলে CSV ফাইল ব্যবহার করুন। এই ZIP-এ ব্যক্তিগত স্বেচ্ছাসেবকের ডাটা নেই।

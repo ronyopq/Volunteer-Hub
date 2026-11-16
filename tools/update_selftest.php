@@ -6,7 +6,7 @@ require_once __DIR__.'/../src/bootstrap.php';
 require_once __DIR__.'/../src/update_engine.php';
 require_once __DIR__.'/../src/system_operations.php';
 function assert_test(bool $cond,string $message): void {if(!$cond){fwrite(STDERR,"FAIL: $message\n");exit(1);}echo "PASS: $message\n";}
-assert_test(APP_VERSION==='1.9.0','software version');
+assert_test(APP_VERSION==='2.2.0','software version');
 $paths=um_code_paths();
 assert_test(in_array('src/system_operations.php',$paths,true),'operations part of signed/backup code');
 assert_test(in_array('src/migrations/001_update_receipts.sql',$paths,true),'migrations included in signed/backup code');

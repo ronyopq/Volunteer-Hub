@@ -206,56 +206,161 @@ function import_sheet_file(string $path,string $extension): array {
     if($format==='google' && $headings!==google_form_headers()) throw new RuntimeException('Google Forms-এর ৫৪টি কলামের ক্রম/নাম বদলানো হয়েছে। মূল ফাইল বা প্রদত্ত টেমপ্লেট ব্যবহার করুন।');
     return [$headings,$rows,$format];
 }
-function import_duplicate(PDO $pdo,array $d): bool {
-    if(!empty($d['_import_code'])) {
-        $q=$pdo->prepare('SELECT 1 FROM volunteers WHERE volunteer_code=? LIMIT 1');$q->execute([$d['_import_code']]);if($q->fetchColumn())return true;
+/**
+ * Import identity policy: a person is matched only by explicit previously issued ID
+ * or a strong identity document. Names and phones are NEVER blocking keys.
+ * A phone match is only a warning and may be shared by family members.
+ * We snapshot the rows once per import, avoiding O(import x database) full scans.
+ */
+function import_existing_index(PDO $pdo): array {
+    $index=['by_code'=>[],'by_document'=>[],'by_phone'=>[],'rows'=>[]];
+    $query=$pdo->query('SELECT id,volunteer_code,uid,legacy_code,form_no,name_bn,name_en,phone,payload,deleted_at FROM volunteers ORDER BY id');
+    while($v=$query->fetch(PDO::FETCH_ASSOC)){
+        $id=(int)$v['id'];$index['rows'][$id]=$v;
+        foreach(['volunteer_code','uid','legacy_code'] as $field){
+            $code=strtoupper(trim((string)($v[$field]??'')));
+            if($code!=='')$index['by_code'][$code][$id]=true;
+        }
+        $data=json_decode((string)($v['payload']??''),true)?:[];
+        $doc=praan_normalize_document((string)($data['id_number']??''));
+        if($doc!=='')$index['by_document'][$doc][$id]=true;
+        $phone=praan_normalize_phone((string)($v['phone']??''));
+        if(preg_match('/^01[3-9][0-9]{8}$/D',$phone))$index['by_phone'][$phone][$id]=true;
     }
-    $name=trim((string)($d['name_bn']?:$d['name_en']));
-    $phone=trim((string)$d['phone']);
-    $form=trim((string)$d['form_no']);
-    $id=trim((string)$d['id_number']);
-    $sql="SELECT payload FROM volunteers WHERE deleted_at IS NULL AND ( (form_no=? AND ?<>'') OR (phone=? AND phone<>'' AND (name_bn=? OR name_en=?)) OR (name_bn=? AND name_en=? AND name_bn<>'') ) LIMIT 40";
-    $q=$pdo->prepare($sql);$q->execute([$form,$form,$phone,$d['name_bn'],$d['name_en'],$d['name_bn'],$d['name_en']]);
-    while($payload=$q->fetchColumn()) {
-       $existing=json_decode((string)$payload,true)?:[];
-       if($form!=='' && (string)($existing['form_no']??'')===$form)return true;
-       if($phone!=='' && $name!=='' && ((string)($existing['name_bn']??'')===$d['name_bn'] || (string)($existing['name_en']??'')===$d['name_en']))return true;
-       if($d['name_bn']!=='' && $d['name_en']!=='' && $id!=='' && (string)($existing['id_number']??'')===$id)return true;
-    }
-    return false;
+    return $index;
 }
-function import_process(PDO $pdo,array $headings,array $rows,string $mode,bool $dryRun): array {
-    $result=['added'=>0,'duplicates'=>0,'invalid'=>0,'total'=>0,'warnings'=>[]];
-    $seen=[];
+function import_set_ids(array $map,string $key): array {
+    return $key!==''?array_map('intval',array_keys($map[$key]??[])):[];
+}
+/** Returns a deterministic row classification with a masked explanation. */
+function import_classify_row(array $d,array $index,array &$seen): array {
+    $code=strtoupper(trim((string)($d['_import_code']??'')));
+    $doc=praan_normalize_document((string)($d['id_number']??''));
+    $phone=praan_normalize_phone((string)($d['phone']??''));
+    $validPhone=(bool)preg_match('/^01[3-9][0-9]{8}$/D',$phone);
+    foreach(array_filter(['code:'.$code,'document:'.$doc],static fn($k)=>!str_ends_with($k,':')) as $k){
+        if(isset($seen[$k]))return ['type'=>'review','id'=>0,'reason'=>'এই Excel ফাইলের অন্য সারিতে একই Volunteer ID/NID/জন্মনিবন্ধন নম্বর আছে।','phone_warning'=>false];
+        $seen[$k]=true;
+    }
+    $byCode=import_set_ids($index['by_code'],$code);
+    $byDoc=import_set_ids($index['by_document'],$doc);
+    $all=array_values(array_unique(array_merge($byCode,$byDoc)));
+    $phoneMatches=$validPhone?import_set_ids($index['by_phone'],$phone):[];
+    if(count($all)>1)return ['type'=>'review','id'=>0,'reason'=>'Volunteer ID এবং NID/জন্মনিবন্ধন নম্বর আলাদা বিদ্যমান রেকর্ডের সঙ্গে মিলে গেছে।','phone_warning'=>false];
+    if(count($all)===1){
+        $id=$all[0];$old=$index['rows'][$id];
+        if(!empty($old['deleted_at']))return ['type'=>'review','id'=>$id,'reason'=>'আগে আর্কাইভ করা রেকর্ড পাওয়া গেছে; Restore করে তারপর আপডেট করুন।','phone_warning'=>false];
+        $payload=json_decode((string)($old['payload']??''),true)?:[];
+        $oldDoc=praan_normalize_document((string)($payload['id_number']??''));
+        if($doc!==''&&$oldDoc!==''&&$oldDoc!==$doc)return ['type'=>'review','id'=>$id,'reason'=>'একই Volunteer ID কিন্তু ভিন্ন NID/জন্মনিবন্ধন নম্বর; যাচাই প্রয়োজন।','phone_warning'=>false];
+        return ['type'=>'update','id'=>$id,'reason'=>count($byCode)?'আগের Volunteer ID মিলেছে; একই রেকর্ড আপডেট হবে।':'আগের NID/জন্মনিবন্ধন নম্বর মিলেছে; একই রেকর্ড আপডেট হবে।','phone_warning'=>false];
+    }
+    return ['type'=>'new','id'=>0,'reason'=>'নতুন স্বেচ্ছাসেবক হিসেবে যোগ হবে।','phone_warning'=>count($phoneMatches)>0];
+}
+function import_value_present(mixed $v): bool {
+    return is_array($v)?count($v)>0:trim((string)$v)!=='';
+}
+/**
+ * Non-destructive update: only non-empty imported cells replace old payload values.
+ * Never touch existing photo, receipt, public visibility, source or display IDs.
+ * Form numbers stay unchanged. Existing unspecified consent remains unchanged.
+ */
+function import_merge_existing(array $old,array $incoming,string $format): array {
+    $previous=json_decode((string)($old['payload']??''),true);
+    if(!is_array($previous))$previous=[];
+    $merged=array_replace(default_data(),$previous);
+    $definitions=all_fields();
+    $keys=$incoming['_import_present_keys']??array_keys($definitions);
+    foreach($keys as $key){
+        if(!is_string($key)||!array_key_exists($key,$incoming)||!array_key_exists($key,$definitions))continue;
+        if($key==='form_no')continue;
+        if(import_value_present($incoming[$key]))$merged[$key]=$incoming[$key];
+    }
+    foreach(['work_history','training_history'] as $group) if(!empty($incoming[$group])&&is_array($incoming[$group]))$merged[$group]=$incoming[$group];
+    if($format==='google'&&!empty($incoming['_source_google']))$merged['_source_google']=$incoming['_source_google'];
+    // Import source details are auxiliary and should survive future export.
+    foreach(['response_timestamp','source_emergency_raw','source_work_raw','source_training_raw','source_consent_raw'] as $key){
+        if(import_value_present($incoming[$key]??''))$merged[$key]=$incoming[$key];
+    }
+    return $merged;
+}
+function import_prepare_row(array $cells,array $headings,string $mode): array {
+    $data=$mode==='google'?import_clean_google($cells,$headings):import_clean_system($cells,$headings,$mode);
+    // Present keys are populated from the original source, NOT sanitize_form_data defaults.
+    if($mode==='google'){
+        $present=[];
+        $mapping=[2=>'form_no',4=>'project',5=>'registration_date',6=>'name_en',7=>'name_bn',8=>'gender',9=>'dob',11=>'blood_group',12=>'occupation',13=>'education',14=>'id_number',15=>'phone',16=>'alternate_phone',17=>'whatsapp',18=>'smartphone',19=>'mfs',20=>'mfs_ownership',21=>'mfs_relation',23=>'mother_name',24=>'mother_phone',25=>'father_name',26=>'father_phone',27=>'present_village',28=>'present_union',29=>'present_upazila',30=>'permanent_village',31=>'permanent_union',32=>'permanent_upazila',33=>'interests',34=>'availability',35=>'time_available',36=>'travel_scope',37=>'emergency_duty',38=>'languages',39=>'special_skills',40=>'digital_skills',41=>'experience_summary',44=>'support_needs',45=>'first_aid',46=>'swimming',47=>'transport',48=>'driving_license',49=>'consents',50=>'volunteer_sign_name',51=>'collector_sign_name',52=>'attachments'];
+        foreach($mapping as $i=>$key)if(trim((string)($cells[$i]??''))!=='' && import_value_present($data[$key]??''))$present[$key]=true;
+    } else {
+        $rev=array_flip(export_headers());$present=[];$definitions=all_fields();
+        foreach($headings as $i=>$header){
+            $key=$mode==='codes'?(string)$header:(string)($rev[$header]??'');
+            if(isset($definitions[$key])&&trim((string)($cells[$i]??''))!==''&&import_value_present($data[$key]??''))$present[$key]=true;
+        }
+    }
+    $data['_import_present_keys']=array_keys($present);
+    return $data;
+}
+/**
+ * $existingMode=update is the default (upsert, not duplicate insertion).
+ * Optional 'skip' avoids changing any already-matched record.
+ * Preview and Commit use identical classification logic.
+ */
+function import_process(PDO $pdo,array $headings,array $rows,string $mode,bool $dryRun,string $existingMode='update'): array {
+    if(!in_array($existingMode,['update','skip'],true))throw new RuntimeException('Import mode সঠিক নয়।');
+    $result=['added'=>0,'updated'=>0,'skipped'=>0,'review'=>0,'duplicates'=>0,'invalid'=>0,'total'=>0,'phone_warnings'=>0,'warnings'=>[],'rows'=>[]];
+    $index=import_existing_index($pdo);$seen=[];
+    $permissionToUpdate=(!function_exists('praan_can')||praan_can('volunteers.edit'));
     $pdo->beginTransaction();
     try {
-        foreach($rows as $offset=>$cells) {
-            if(!array_filter($cells,static fn($s)=>trim((string)$s)!==''))continue;
-            $result['total']++;
-            $data=$mode==='google'?import_clean_google($cells,$headings):import_clean_system($cells,$headings,$mode);
-            if(trim((string)($data['name_bn']??''))==='' && trim((string)($data['name_en']??''))===''){$result['invalid']++;continue;}
-            if(empty($data['registration_date']))$data['registration_date']=date('Y-m-d');
-            if(empty($data['status']))$data['status']='অপেক্ষমাণ';
-            $keys=[];
-            $fno=trim((string)$data['form_no']);
-            if($fno!=='')$keys[]='form:'.$fno;
-            $code=trim((string)($data['_import_code']??''));
-            if($code!=='')$keys[]='code:'.$code;
-            $phone=trim((string)$data['phone']);
-            if($phone!=='' && trim((string)$data['name_bn'].$data['name_en'])!=='')$keys[]='phone:'.$phone.'|'.trim((string)$data['name_bn']).'|'.trim((string)$data['name_en']);
-            $repeat=false;foreach($keys as $key)if(isset($seen[$key])){$repeat=true;break;}
-            if($repeat || import_duplicate($pdo,$data)){$result['duplicates']++;continue;}
-            foreach($keys as $key)$seen[$key]=true;
-            if($mode==='google' && empty($data['present_district']) && count($result['warnings'])<4)$result['warnings'][]='Row '.($offset+2).': জেলা কলামে তথ্য নেই; যাচাই প্রয়োজন।';
-            if(!$dryRun){
-                save_volunteer($data,null,'excel',0,'');$result['added']++;
-            } else {$result['added']++;}
+        foreach($rows as $offset=>$cells){
+            if(!array_filter($cells,static fn($v)=>trim((string)$v)!==''))continue;
+            $result['total']++;$rowNumber=$offset+2;
+            $d=import_prepare_row($cells,$headings,$mode);
+            $name=mb_safe_limit(trim((string)($d['name_bn']?:$d['name_en']??'')),65);
+            $identifier=mb_safe_limit(trim((string)($d['_import_code']??'')),45);
+            $row=['line'=>$rowNumber,'code'=>$identifier,'name'=>$name,'status'=>'','reason'=>''];
+            if($name===''){$result['invalid']++;$row['status']='invalid';$row['reason']='বাংলা বা ইংরেজি নাম নেই।';}
+            else {
+                if(empty($d['registration_date']))$d['registration_date']=date('Y-m-d');
+                if(empty($d['status']))$d['status']='অপেক্ষমাণ';
+                $c=import_classify_row($d,$index,$seen);
+                $row['status']=$c['type'];$row['reason']=$c['reason'];
+                if($c['phone_warning']){
+                    $result['phone_warnings']++;
+                    $row['reason'].=' একই মোবাইল অন্য রেকর্ডেও আছে—শেয়ার্ড ফোন হিসেবে গ্রহণযোগ্য।';
+                }
+                if($c['type']==='review'){$result['review']++;}
+                elseif($c['type']==='update'){
+                    $result['duplicates']++; // legacy metric; not an import rejection
+                    if($existingMode==='skip'){$result['skipped']++;$row['status']='skipped';$row['reason']='আগের রেকর্ড অপরিবর্তিত রাখা হবে।';}
+                    elseif(!$permissionToUpdate){$result['review']++;$row['status']='review';$row['reason']='বিদ্যমান রেকর্ড আপডেটের অনুমতি নেই।';}
+                    else {
+                        $result['updated']++;
+                        if(!$dryRun){
+                            $old=fetch_volunteer((int)$c['id']);
+                            if(!$old)throw new RuntimeException('Preview-এর পর একটি রেকর্ড পরিবর্তিত হয়েছে; আবার Import Preview করুন।');
+                            $merged=import_merge_existing($old,$d,$mode);
+                            if(function_exists('praan_can')&&!praan_can('volunteers.approve'))$merged['status']=$old['status'];
+                            save_volunteer($merged,$old,(string)$old['source_type'],(int)$old['public_visible'],(string)$old['photo_file']);
+                        }
+                    }
+                } else {
+                    $result['added']++;
+                    if(!$dryRun){
+                        unset($d['_import_present_keys']);
+                        save_volunteer($d,null,'excel',0,'');
+                    }
+                }
+            }
+            if(count($result['rows'])<150)$result['rows'][]=$row;
         }
-        if($dryRun)$pdo->rollBack();else {
-            log_action(null,'excel_import','format='.$mode.' added='.$result['added'].' duplicate='.$result['duplicates'].' invalid='.$result['invalid']);
+        if($dryRun)$pdo->rollBack();
+        else {
+            log_action(null,'excel_import','format='.$mode.' new='.$result['added'].' updated='.$result['updated'].' skipped='.$result['skipped'].' review='.$result['review'].' invalid='.$result['invalid']);
             $pdo->commit();
         }
-    } catch(Throwable $e) { if($pdo->inTransaction())$pdo->rollBack();throw $e; }
+    } catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
     return $result;
 }
 /** Reconstruct original Google form headings, preserving source cells that are not individually structured. */

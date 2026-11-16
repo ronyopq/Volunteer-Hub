@@ -8,6 +8,9 @@ const UM_WORK = __DIR__ . '/../storage/update_work';
 const UM_KEYFILE = __DIR__ . '/../storage/update_signer.pub';
 const UM_MAX_ARCHIVE = 26214400; // 25 MiB maximum signed update archive
 const UM_MAX_FILE = 6291456; // 6 MiB maximum per installed file
+// v2.2: Load the operations implementation before invoking Update Center/Doctor.
+// Previously this was included only by tools/update_selftest.php, causing HTTP 500.
+require_once __DIR__ . '/system_operations.php';
 
 function um_safe_mkdir(string $path): void {
     if (!is_dir($path) && !@mkdir($path, 0750, true) && !is_dir($path)) throw new RuntimeException('ফোল্ডার তৈরি করা সম্ভব হয়নি।');
@@ -41,6 +44,7 @@ function um_gate(string $page, string $method): void {
     if(empty(um_maintenance()['enabled'])) return;
     if(!admin() && !in_array($page,['login','logout'],true)) {
         http_response_code(503); header('Retry-After: 600'); header('Cache-Control: no-store');
+        if(function_exists('praan_error_page'))praan_error_page(503,'সাইটের রক্ষণাবেক্ষণ চলছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।');
         echo '<!doctype html><html lang="bn"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PRAAN Maintenance</title><body style="font-family:system-ui,sans-serif;background:#eef5f6;color:#14384b;padding:8vh 6vw;text-align:center"><h1>সাইটের রক্ষণাবেক্ষণ চলছে</h1><p>ডাটা নিরাপদ রাখতে সাময়িকভাবে নিবন্ধন বন্ধ আছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।</p><a href="index.php?page=login">অ্যাডমিন লগইন</a></body></html>';
         exit;
     }
@@ -87,7 +91,7 @@ function um_code_paths(): array {
     foreach (['index.php','.htaccess','README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','INSTALL_CPANEL_BN.txt','manifest.webmanifest','service-worker.js','offline.html'] as $rel) {
         if(is_file(UM_ROOT.'/'.$rel)&&!is_link(UM_ROOT.'/'.$rel)) $paths[]=$rel;
     }
-    foreach(['src','assets','public','resources','tools','modules'] as $folder){
+    foreach(['src','assets','public','resources','tools','modules','errors'] as $folder){
         $base=UM_ROOT.'/'.$folder;if(!is_dir($base))continue;
         $iter=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base,FilesystemIterator::SKIP_DOTS));
         foreach($iter as $item){
@@ -101,7 +105,7 @@ function um_code_paths(): array {
 function um_valid_code_path(string $path): bool {
     if($path==='index.php'||$path==='.htaccess'||in_array($path,['README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','INSTALL_CPANEL_BN.txt','manifest.webmanifest','service-worker.js','offline.html'],true))return true;
     if(strlen($path)>230||str_contains($path,'\\')||str_contains($path,'..')||str_starts_with($path,'/'))return false;
-    return (bool)preg_match('~^(?:src|assets|public|resources|tools|modules)/(?:[a-zA-Z0-9._-]+/)*[a-zA-Z0-9._-]+$~D',$path);
+    return (bool)preg_match('~^(?:src|assets|public|resources|tools|modules|errors)/(?:[a-zA-Z0-9._-]+/)*[a-zA-Z0-9._-]+$~D',$path);
 }
 function um_photo_paths(): array {
     $dir=PHOTO_DIR;if(!is_dir($dir))return [];
@@ -340,7 +344,7 @@ function um_install_latest(PDO $pdo): array {
     $health=praan_sqlite_health($pdo);
     if(!$health['ok'])throw new RuntimeException('SQLite preflight ব্যর্থ; আপডেট বন্ধ।');
     praan_migration_catalog();
-    $repo=trim(setting('github_repo'));
+    $repo=trim(setting('github_repo','ronyopq/Volunteer-Hub'));
     if(!valid_github_repository($repo))throw new RuntimeException('প্রথমে GitHub Repository সংযুক্ত করুন।');
     $release=check_github_latest_release($repo);
     if(isset($release['error']))throw new RuntimeException((string)$release['error']);
@@ -417,18 +421,10 @@ function um_install_latest(PDO $pdo): array {
 }
 
 function um_notification(): ?array {
-    if(!admin())return null;
-    $repo=trim(setting('github_repo'));if(!valid_github_repository($repo))return null;
-    $cacheFile=UM_STORAGE.'/update-cache.json';$raw=is_file($cacheFile)?json_decode((string)@file_get_contents($cacheFile),true):null;
-    if(!is_array($raw)||($raw['repo']??'')!==$repo||time()-(int)($raw['checked_at']??0)>43200){
-        try{
-            $res=check_github_latest_release($repo);
-            $raw=['repo'=>$repo,'checked_at'=>time(),'release'=>$res];
-            um_atomic_file($cacheFile,json_encode($raw,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));
-        }catch(Throwable $e){error_log('PRAN update notification: '.$e->getMessage());return null;}
-    }
-    $release=$raw['release']??null;
-    return is_array($release)&&!isset($release['error'])&&!empty($release['newer'])?$release:null;
+    if (!admin() || !function_exists('praan_github_cached_status')) return null;
+    $state=praan_github_cached_status();
+    $r=$state['release']??null;
+    return is_array($r) && empty($r['error']) && isset($r['version']) && version_compare((string)$r['version'],APP_VERSION,'>') ? $r : null;
 }
 function um_prerequisites(): array {
     return [
@@ -439,6 +435,6 @@ function um_prerequisites(): array {
         ['cURL (GitHub releases)',function_exists('curl_init'),'HTTPS download'],
         ['Storage writable',is_writable(UM_STORAGE),'Backup/maintenance state'],
         ['Trusted public key',um_key()!==null,'Pinned Ed25519'],
-        ['Configured GitHub repo',valid_github_repository(trim(setting('github_repo'))),'Public release'],
+        ['Configured GitHub repo',valid_github_repository(trim(setting('github_repo','ronyopq/Volunteer-Hub'))),'Public release'],
     ];
 }

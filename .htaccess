@@ -1,4 +1,9 @@
-# PRAAN Volunteer Management v1.9.0 — Apache/cPanel only.
+# PRAAN Volunteer Management v2.2.0 — Apache/cPanel only.
+# Target deployment: /a/volunteer/. Update these paths if installed elsewhere.
+ErrorDocument 403 /a/volunteer/errors/403.html
+ErrorDocument 404 /a/volunteer/errors/404.html
+ErrorDocument 500 /a/volunteer/errors/500.html
+ErrorDocument 503 /a/volunteer/errors/503.html
 Options -Indexes
 DirectoryIndex index.php
 <IfModule mod_rewrite.c>
@@ -22,6 +27,8 @@ DirectoryIndex index.php
 <IfModule mod_headers.c>
  Header always set X-Content-Type-Options "nosniff"
  Header always set X-Frame-Options "SAMEORIGIN"
+ Header always set Referrer-Policy "no-referrer"
+ Header always set X-Permitted-Cross-Domain-Policies "none"
 </IfModule>
 
 <IfModule mod_mime.c>

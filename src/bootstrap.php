@@ -3,20 +3,34 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/fields.php';
 require_once __DIR__ . '/identity.php';
+require_once __DIR__ . '/record_identity.php';
 require_once __DIR__ . '/media_upload.php';
+require_once __DIR__ . '/production.php';
+require_once __DIR__ . '/notifications.php';
 date_default_timezone_set('Asia/Dhaka');
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '2.2.1';
 const DATA_PATH = __DIR__ . '/../storage/pran.sqlite';
 const PHOTO_DIR = __DIR__ . '/../storage/photos';
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+    ini_set('session.cookie_httponly', '1');
+    // Keep the established cookie name for existing sites; narrow its path to this app.
     session_name('pran_session');
-    session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax']);
+    $base = str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/index.php')));
+    $cookiePath = ($base === '/' || $base === '.' ? '/' : rtrim($base, '/') . '/');
+    session_set_cookie_params(['lifetime' => 0, 'path' => $cookiePath, 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax']);
     session_start();
 }
 header('X-Content-Type-Options: nosniff');
-header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Referrer-Policy: no-referrer');
+header('Cache-Control: private, no-store, max-age=0');
+header('X-Robots-Tag: noindex, nofollow');
+header('Cross-Origin-Resource-Policy: same-origin');
+header('X-Permitted-Cross-Domain-Policies: none');
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') header('Strict-Transport-Security: max-age=31536000');
 header('X-Frame-Options: SAMEORIGIN');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
@@ -112,6 +126,9 @@ function db(): PDO {
     media_migrate($connection);
     praan_auth_migrate($connection);
     praan_module_migrate($connection);
+    praan_production_migrate($connection);
+    praan_identity_migrate($connection);
+    praan_notifications_migrate($connection);
     return $connection;
 }
 function setting(string $name, string $fallback = ''): string {
@@ -124,7 +141,14 @@ function set_setting(string $name, string $value): void {
     db()->prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value')->execute([$name,$value]);
 }
 function e(mixed $s): string { return htmlspecialchars((string)($s ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-function url(string $page, array $params = []): string { return 'index.php?' . http_build_query(array_merge(['page'=>$page], $params), '', '&', PHP_QUERY_RFC3986); }
+function url(string $page, array $params = []): string {
+    // Only externally visible volunteer record routes use unguessable opaque public tokens.
+    if(in_array($page,['view','submitted','edit','print','photo','download_docx'],true) && isset($params['id']) && ctype_digit((string)$params['id'])) {
+        $q=db()->prepare('SELECT public_token FROM volunteers WHERE id=?');$q->execute([(int)$params['id']]);
+        $token=$q->fetchColumn();if(is_string($token)&&$token!=='')$params['id']=$token;
+    }
+    return 'index.php?' . http_build_query(array_merge(['page'=>$page], $params), '', '&', PHP_QUERY_RFC3986);
+}
 function redirect(string $page, array $params = []): never { header('Location: ' . url($page, $params), true, 303); exit; }
 function admin(): bool { return isset($_SESSION['admin_id']) && (int)$_SESSION['admin_id'] > 0; }
 function require_admin(): void { if (!admin()) redirect('login'); }
@@ -184,14 +208,30 @@ function save_volunteer(array $data, ?array $old, string $source, int $visible, 
     ];
     $pdo = db();
     if ($old) {
+        $fields['form_no']=(string)$old['form_no'];
+        $existingPayload=json_decode($payload,true)?:[];$existingPayload['form_no']=(string)$old['form_no'];
+        $fields['payload']=json_encode($existingPayload,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR);
+        if(empty($old['draft_uid']) && praan_uid_valid((string)($data['draft_uid']??''),'DRF')) $fields['draft_uid']=(string)$data['draft_uid'];
         $set = implode(', ', array_map(fn($field) => "$field=:$field", array_keys($fields)));
         $q = $pdo->prepare("UPDATE volunteers SET $set, updated_at=CURRENT_TIMESTAMP WHERE id=:id AND deleted_at IS NULL");
-        if(empty($old['draft_uid']) && praan_uid_valid((string)($data['draft_uid']??''),'DRF')) $fields['draft_uid']=(string)$data['draft_uid'];
         $fields['id'] = (int)$old['id']; $q->execute($fields);
         log_action((int)$old['id'], 'edit');
         return (int)$old['id'];
     }
+    $manage=!$pdo->inTransaction();if($manage)$pdo->beginTransaction();
+    try {
+    $oldImportedForm=trim((string)($data['form_no']??''));
+    $oldImportedCode=trim((string)($data['_import_code']??''));
     $fields['uid'] = praan_uid('VOL');
+    $fields['form_no']=$data['form_no']=praan_next_form_no($pdo);
+    $fields['legacy_form_no']=$oldImportedForm!==''?$oldImportedForm:null;
+    $fields['legacy_code']=$oldImportedCode!==''?$oldImportedCode:null;
+    $fields['payload']=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR);
+    $fields['public_token']=praan_new_public_token($pdo);
+    $fields['volunteer_code']=praan_next_volunteer_code($pdo,(string)$fields['registered_on']);
+    // Re-check under the SQLite write lock to prevent parallel submissions of the same identity document.
+    $dupe=praan_duplicate_evidence($pdo,$data);
+    if($dupe['document'])throw new RuntimeException('এই NID/জন্মনিবন্ধন নম্বর দিয়ে নিবন্ধন ইতিমধ্যেই রয়েছে।');
     $fields['draft_uid'] = praan_uid_valid((string)($data['draft_uid']??''),'DRF') ? (string)$data['draft_uid'] : null;
     $fields['receipt_hash'] = $receiptHash;
     $fields['created_by'] = admin_id();
@@ -199,9 +239,20 @@ function save_volunteer(array $data, ?array $old, string $source, int $visible, 
     $q = $pdo->prepare('INSERT INTO volunteers (' . implode(',', $keys) . ') VALUES (:' . implode(',:', $keys) . ')');
     $q->execute($fields);
     $id = (int)$pdo->lastInsertId();
-    $pdo->prepare('UPDATE volunteers SET volunteer_code=? WHERE id=?')->execute([$fields['uid'], $id]);
+    if($manage)$pdo->commit();
     log_action($id, 'created', $source);
+    if($source==='public' && function_exists('praan_notification_user')){
+        try{
+            $stmt=$pdo->query("SELECT DISTINCT u.id FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id WHERE r.slug IN ('super_admin','admin','verifier') AND u.status='active' AND u.deleted_at IS NULL");
+            foreach($stmt->fetchAll(PDO::FETCH_COLUMN) as $receiver){
+                praan_notification_user($pdo,(int)$receiver,'নতুন স্বেচ্ছাসেবক নিবন্ধন',
+                    'একটি নতুন পাবলিক নিবন্ধন জমা হয়েছে। যাচাইয়ের জন্য স্বেচ্ছাসেবক তালিকা খুলুন।',
+                    'volunteer','info','volunteers','new-volunteer:'.$id);
+            }
+        }catch(Throwable $noticeError){error_log('PRAAN registration notice failed: '.get_class($noticeError));}
+    }
     return $id;
+    }catch(Throwable $e){if($manage&&$pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 function store_photo(?array $uploaded, string $previous = ''): string {
     if (!$uploaded || (int)($uploaded['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return $previous;
@@ -213,12 +264,9 @@ function store_photo(?array $uploaded, string $previous = ''): string {
     $ext = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$mime] ?? null;
     if (!$ext || getimagesize($temp) === false) throw new RuntimeException('শুধু JPG, PNG বা WebP ছবি আপলোড করুন।');
     // Prefer the same EXIF-cleaning/auto-rotation pipeline as resumable uploads.
-    // Without GD, preserve the legacy direct upload fallback.
-    if(extension_loaded('gd')) return media_convert($temp,hash_file('sha256',$temp));
-    if (!is_dir(PHOTO_DIR)) mkdir(PHOTO_DIR, 0750, true);
-    $filename = bin2hex(random_bytes(16)) . '.' . $ext;
-    if (!move_uploaded_file($temp, PHOTO_DIR . '/' . $filename)) throw new RuntimeException('ছবি সেভ করা যায়নি।');
-    return $filename;
+    // Fail closed: retaining camera/GPS metadata in a direct original upload is unsafe.
+    if(!extension_loaded('gd')) throw new RuntimeException('নিরাপদ ছবি আপলোডের জন্য PHP GD Extension প্রয়োজন।');
+    return media_convert($temp,hash_file('sha256',$temp));
 }
 function display_value(mixed $value): string {
     if (is_array($value)) return implode(', ', array_map(fn($x) => is_array($x) ? implode(' | ', $x) : (string)$x, $value));

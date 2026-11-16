@@ -18,6 +18,7 @@ function form_sections(): array {
             'blood_group' => ['রক্তের গ্রুপ', 'select', ['A+','A-','B+','B-','AB+','AB-','O+','O-','জানা নেই']],
             'occupation' => ['পেশা', 'text'],
             'education' => ['সর্বশেষ শিক্ষাগত যোগ্যতা', 'text'],
+            'id_document_type' => ['পরিচয়পত্রের ধরন', 'select', ['NID','Birth Certificate','অনির্ধারিত']],
             'id_number' => ['জন্মনিবন্ধন / NID নং', 'text'],
             'phone' => ['মোবাইল নং', 'tel'],
             'alternate_phone' => ['বিকল্প মোবাইল নং', 'tel'],

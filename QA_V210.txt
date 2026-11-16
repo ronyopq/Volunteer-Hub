@@ -1,0 +1,11 @@
+PRAAN v2.1.0 QA (2026-11-16)
+- PHP: syntactic check of application files: PASS.
+- JS: syntax check: PASS.
+- Word template: 3 A4 pages when rendered with placeholders: PASS.
+- Word example with full Bengali consent and sample volunteer identity: 3 A4 pages when rendered: PASS.
+- Template contains 95 field placeholders; editable OOXML tables/paragraphs: PASS.
+- Favicon PNG generated in 16/32/48/180 pixel sizes: PASS.
+- PHP pure identity normalization (Bengali numerals, Bangladesh phone): PASS.
+- ZIP file structure and CRC integrity: PASS after packaging.
+- NOT RUN: PHP/PDO_SQLite integration, actual login/CSRF/receipt/permission flows, PHP ZipArchive export generation, actual cPanel deployment, and production rollback. These require PHP extensions and staging.
+- Previously deployed database remains live and is NOT bundled or modified in this package.

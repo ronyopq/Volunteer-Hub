@@ -1,0 +1,24 @@
+PRAAN v2.2.1 Smart Import — Quality Assurance Summary
+Date: 16 November 2026
+
+Upload inspected: pran_volunteers_2026-11-16 (3).xlsx
+- 27 data rows, 119 columns (the full PRAAN export schema)
+- 27 unique Volunteer IDs; no repeated strong identity document values or normalized phone numbers within the workbook.
+- 26 recognizable 10/13/17-digit document identifiers; 1 additional 16-digit identifier requires verification, not automatic deletion.
+- Every one of the 27 rows has a name; no empty-name rows.
+- This file by itself does not account for the site's 15 reported duplicates. An existing database match is the likely explanation; the live SQLite file was not provided.
+
+Static/runtime tests
+- PHP syntax check: all project PHP files pass.
+- JavaScript syntax checks: project JS files and service worker pass.
+- Import-Ready CSV: 27 records recognized by the actual PHP importer, system schema detected.
+- Synthetic case with 15 pre-existing IDs/documents: 15 Update + 12 New + 0 Review, verified using the actual PHP matching functions.
+- Shared mobile with different ID/document: classified as New with warning, not rejected.
+- Non-empty-only merge: blank imported fields do not overwrite existing data.
+- ZIP integrity and absence of private SQLite/volunteer data in the application ZIP checked.
+
+Production limitation
+- The local PHP build lacks pdo_sqlite, ZipArchive and DOMDocument; full PHP/SQLite and direct .xlsx web-import E2E was not possible.
+- Always test on a staging copy of your real database before upgrading production.
+- Backup storage/pran.sqlite, photos and update-signing files before deployment.
+- The 15 matched records can be confirmed only by comparing your site's current database with uploaded rows.

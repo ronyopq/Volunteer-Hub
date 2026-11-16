@@ -2,7 +2,7 @@
  * Never intercept/cache authenticated HTML, API, report exports, POST bodies, or photos.
  */
 'use strict';
-const VERSION='1.8.0';
+const VERSION='2.2.1';
 const PREFIX='praan-static-';
 const CACHE=PREFIX+VERSION;
 const ROOT=new URL('./',self.registration.scope).pathname;
@@ -13,7 +13,7 @@ const PRELOAD=[
   'assets/analytics.css','assets/volunteer-table.css','assets/volunteer-table.js',
   'assets/praan-foundation.css','assets/praan-foundation.js',
   'assets/praan-media.css','assets/praan-media.js','assets/praan-access.css',
-  'assets/praan-modules.css','assets/praan-modules.js','assets/update-center.css'
+  'assets/praan-modules.css','assets/praan-modules.js','assets/praan-notifications.css','assets/praan-notifications.js','assets/update-center.css','assets/praan-identity.css', 'assets/favicon-32.png'
 ];
 const files=new Set(PRELOAD);
 self.addEventListener('install',event=>{

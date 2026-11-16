@@ -1,34 +1,21 @@
-PRAAN v1.9.0 QA — 2026-11-16
-=============================
-PASS: PHP source lint (28 files)
-PASS: JavaScript static syntax and inline update UI syntax
-PASS: Role/permission self-tests (previous suite)
-PASS: Module registry and gate self-tests (previous suite)
-PASS: Update-specific self-tests: version, signed file inclusion, unsafe paths,
-      additive migration parsing, destructive SQL rejection
-PASS: Python SQLite test of migration SQL schema and transaction rollback
-PASS: Update ZIP structure/integrity (after packaging)
+PRAAN v2.0.0 QA REPORT — 2026-11-16
+=====================================
 
-NOT AVAILABLE IN THIS BUILD RUNTIME:
-- php-pdo_sqlite PHP extension (Python sqlite3 used for SQL tests).
-- PHP ZipArchive & curl extensions.
-- PHP+SQLite+ZipArchive+GitHub signed-release full integration test.
-- Apache/cPanel HTTP access control and production filesystem permission test.
-- Live site deployment and actual restoration drill.
+PASS: PHP CLI syntax checks for 30 PHP files.
+PASS: Node JS syntax checks for 7 JavaScript files.
+PASS: Previous RBAC self-test (authz_selftest.php).
+PASS: Existing module registry tests (module_selftest.php).
+PASS: Existing signed-update self-test (update_selftest.php, version 2.0.0).
+PASS: New production self-test (production_selftest.php).
+PASS: Python sqlite3 migration simulation: new tables and indexes create twice (idempotent).
+PASS: Migration simulation preserves a pre-existing volunteer, public visibility and legacy ID.
+PASS: CHECK constraints reject unknown Privacy Request type.
+PASS: Static review of route permissions, honeypot, security headers and download audit.
+PENDING: Real end-to-end PHP PDO SQLite test. This environment has PHP but no pdo_sqlite extension.
+PENDING: Real web/browser test against cPanel host and live services.
+PENDING: PHP GD upload and EXIF removal integration test (GD not installed here).
+PENDING: Signed-update full failure injection and recovery test on staging.
+PENDING: Real backup recovery, Apache/Nginx privacy-deny, CDN/SSL verification.
 
-REQUIRED STAGING TESTS BEFORE PRODUCTION:
-1) Backup production copy (SQLite + photos + code) and download/verify ZIP.
-2) System Doctor → SQLite integrity + HTTPS/storage checks.
-3) Super Admin-only update actions; test a non-super admin as well.
-4) Backup + Validate + Migrate; second run must not duplicate migration.
-5) Sign a test release with separately stored offline private signing key;
-   upload 3 artifacts to a controlled GitHub test release.
-6) Confirm all 6 progress phases and old form/export/PWA behavior.
-7) Force controlled install failure; verify code files and new-only files recover.
-8) Test manual rollback; confirm volunteer records and images remain intact.
-9) Simulate an interrupted transaction on staging and test Recovery.
-10) Prove storage URL is inaccessible externally (403/404).
-
-RISK: Web-based updater cannot guarantee recovery after a PHP syntax error,
-filesystem corruption or interrupted process. Maintain offsite backups and
-cPanel access. Rollback is CODE ONLY; SQLite schema migrations are additive.
+IMPORTANT: The ZIP is a tested code package, not a guarantee of production readiness.
+Back up before upgrade; do not deploy destructive operations without a staging test.

@@ -61,13 +61,18 @@ function update_checklist(): array {
 }
 function render_update_center(): void {
     require_admin();
-    $repo=trim(setting('github_repo'));
+    $repo=trim(setting('github_repo','ronyopq/Volunteer-Hub'));
     $manualCheck=(string)($_GET['check']??'')==='1';
-    $release=($manualCheck&&$repo!=='')?check_github_latest_release($repo):null;
+    $githubStatus=praan_github_cached_status();
+    $release=$repo!==''&&($githubStatus['repo']??'')===$repo ? ($githubStatus['release']??null) : null;
     $backups=um_backup_names();$maintenance=um_maintenance();$checks=um_prerequisites();$transaction=praan_tx_read();
-    $canInstall=praan_is_super() && !(bool)array_filter($checks,fn($c)=>!$c[1]);
+    $assetNames=is_array($release['assets']??null)?array_keys($release['assets']):[];
+    $expected=empty($release['version'])||!version_compare((string)$release['version'],APP_VERSION,'>')?[]:['pran-update-v'.$release['version'].'.zip','pran-update-v'.$release['version'].'.zip.sha256','pran-update-v'.$release['version'].'.zip.sig'];
+    $signedReady=count($expected)===3 && count(array_diff($expected,$assetNames))===0;
+    $canInstall=praan_is_super() && !(bool)array_filter($checks,fn($c)=>!$c[1]) && $signedReady;
     $notes=is_file(UM_ROOT.'/CHANGELOG.md')?(string)file_get_contents(UM_ROOT.'/CHANGELOG.md'):'';
     $notes=mb_safe_limit($notes,4200);
+    $gitHead=$githubStatus['head']['sha']??null;
     page_start('Site Update Center','updates',true);
     ?>
     <div class="updates-hero">
@@ -88,10 +93,11 @@ function render_update_center(): void {
       <section class="card dashboard-card"><div class="card-header"><h3 class="card-title"><i class="bi bi-github"></i> ১. GitHub Release ও Notification</h3></div><div class="card-body">
           <p class="text-muted small">Public GitHub repository দিন। Dashboard প্রতি ১২ ঘণ্টায় (সর্বোচ্চ) নতুন স্থিতিশীল সংস্করণ যাচাই করবে এবং আপডেট থাকলে নোটিফিকেশন দেখাবে।</p>
           <form method="post" action="<?=e(url('update_repo_save'))?>" class="updates-repo-form"><?=csrf_field()?>
-             <label class="form-label" for="repoValue">GitHub owner/repository</label><input id="repoValue" class="form-control" name="github_repo" value="<?=e($repo)?>" placeholder="praan-org/volunteer" autocomplete="off" maxlength="145">
+             <label class="form-label" for="repoValue">GitHub owner/repository</label><input id="repoValue" class="form-control" name="github_repo" value="<?=e($repo)?>" placeholder="ronyopq/Volunteer-Hub" autocomplete="off" maxlength="145">
              <button class="btn btn-brand" type="submit">সংরক্ষণ</button>
           </form>
           <a class="btn btn-outline-brand btn-sm mt-3" href="<?=e(url('updates',['check'=>'1']))?>"><i class="bi bi-arrow-clockwise"></i> এখন যাচাই</a>
+          <?php if(!empty($githubStatus['checked_at'])):?><div class="small text-muted mt-2">সর্বশেষ পরীক্ষা: <?=e(date('d M Y, h:i A',(int)$githubStatus['checked_at']))?> · main commit: <code><?=e(is_string($gitHead)?substr($gitHead,0,10):'অজানা')?></code></div><?php endif;?>
           <?php if($repo!==''):?><a class="btn btn-outline-secondary btn-sm mt-3" href="<?=e('https://github.com/'.$repo.'/releases')?>" target="_blank" rel="noopener noreferrer">Release History</a><?php endif;?>
           <?php if($release):?><div class="alert <?=isset($release['error'])?'alert-warning':'alert-info'?> mt-3 mb-0">
             <?php if(isset($release['error'])):?><?=e($release['error'])?><?php else:?><?=!empty($release['newer'])?'নতুন সংস্করণ পাওয়া গেছে: v':'সর্বশেষ প্রকাশিত সংস্করণ: v'?><?=e($release['version'])?><small class="d-block mt-1">প্রকাশ: <?=e($release['published_at'])?></small><?php endif;?>
@@ -142,7 +148,7 @@ function render_update_center(): void {
             <button type="submit" class="btn btn-brand" <?=$canInstall?'':'disabled'?>><i class="bi bi-arrow-clockwise"></i> Verify + Backup + Install</button>
         </form>
         <div class="update-live" id="praanUpdateLive" hidden aria-live="polite"><div class="d-flex justify-content-between"><span class="update-live-message">Update প্রস্তুত হচ্ছে</span><span id="praanUpdatePct">0%</span></div><div class="update-live-bar"><span id="praanUpdateFill"></span></div><div class="update-live-details" id="praanUpdateDetails">Progress poll চালু হচ্ছে...</div></div>
-        <?php if(!$canInstall):?><div class="alert alert-warning small mt-3 mb-0">Super Admin এবং সব Server Preflight শর্ত পূরণ হলে এই বোতাম চালু হবে।</div><?php endif;?>
+        <?php if(!$canInstall):?><div class="alert alert-warning small mt-3 mb-0">Super Admin, সব Server Preflight শর্ত এবং নতুন Release-এর তিনটি <strong>signed asset</strong> পাওয়া গেলে বোতাম চালু হবে। কেবল Git commit থাকলে নিরাপদ One-Click Install সম্ভব নয়।</div><?php endif;?>
       </div></section>
     </div>
     <section class="card dashboard-card mt-3"><div class="card-header"><h3 class="card-title"><i class="bi bi-database-gear"></i> Additive Database Migrations</h3></div><div class="card-body">
@@ -150,7 +156,7 @@ function render_update_center(): void {
       <?php $catalog=[];$catalogError=null;try{$catalog=praan_migration_catalog();}catch(Throwable $e){$catalogError=$e->getMessage();}?>
       <?php if($catalogError!==null):?><div class="alert alert-danger"><?=e($catalogError)?></div><?php else:?><p class="small text-muted">Package Migration Files: <?=count($catalog)?> · <code><?=e(implode(', ',array_keys($catalog)))?></code></p><?php endif;?>
       <form method="post" action="<?=e(url('update_migrate'))?>" class="d-flex flex-wrap align-items-end gap-2" onsubmit="return confirm('Backup তৈরি করে additive migration চালু করবেন?')"><?=csrf_field()?><label>Super Admin Password<input class="form-control mt-1" type="password" name="password" required autocomplete="current-password"></label><button type="submit" class="btn btn-outline-brand" <?=praan_is_super()?'':'disabled'?>>Backup + Validate + Migrate</button></form>
-      <p class="small text-muted mt-2 mb-0">cPanel দিয়ে প্রথমবার v1.9.0 আপডেট করার পর এই ধাপটি একবার চালান। আগের Migration দ্বিতীয়বার কার্যকর হবে না।</p>
+      <p class="small text-muted mt-2 mb-0">নতুন সংস্করণ ইনস্টল করার পর প্রয়োজন হলে এই ধাপটি চালান। একই Migration দ্বিতীয়বার কার্যকর হবে না।</p>
     </div></section>
     <section class="card dashboard-card mt-3"><div class="card-header"><h3 class="card-title"><i class="bi bi-clock-history"></i> ৭. Safe Code Rollback</h3></div><div class="card-body">
       <p>Rollback করলে আগের **কোড ফাইল** ফিরে আসবে। বর্তমান SQLite রেকর্ড ও ছবি <strong>অক্ষত থাকবে</strong>; নতুন নিবন্ধন হারাবে না। পূর্ববর্তী সংস্করণ ডাটাবেইস schema সমর্থন করে কি না তা নিশ্চিত করুন।</p>

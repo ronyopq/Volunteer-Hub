@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/src/runtime_errors.php';
 require_once __DIR__ . '/src/views.php';
 require_once __DIR__ . '/src/print.php';
 require_once __DIR__ . '/src/export.php';
@@ -26,10 +27,57 @@ if(admin()) {
 um_gate($page, (string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 praan_authorize_route($page);
 praan_module_route_gate($page);
+// Check GitHub on admin GET requests only, cached and rate limited.
+if (admin() && ($_SERVER['REQUEST_METHOD']??'GET') === 'GET' && $page !== 'notification_poll') {
+    praan_notifications_tick($pdo, $page === 'updates' && (string)($_GET['check']??'') === '1');
+}
+if ($page === 'notifications' && ($_SERVER['REQUEST_METHOD']??'GET') === 'GET') {praan_notifications_page($pdo);exit;}
+if ($page === 'notification_poll' && ($_SERVER['REQUEST_METHOD']??'GET') === 'GET') {
+    require_admin();header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
+    echo json_encode(praan_notification_payload($pdo, (int)admin_id()), JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
+}
+if (in_array($page,['notification_read','notification_read_all','notification_send'],true) && ($_SERVER['REQUEST_METHOD']??'GET') === 'POST') {
+    require_admin();verify_csrf();
+    try {
+        if ($page === 'notification_send') {
+            if (!praan_is_super()) throw new RuntimeException('শুধু Super Admin নোটিফিকেশন পাঠাতে পারবেন।');
+            um_require_password((string)($_POST['admin_password']??''));
+            $total=praan_notification_broadcast($pdo, $_POST);
+            flash('success',$total.' জনকে নোটিফিকেশন পাঠানো হয়েছে।');
+        } elseif($page === 'notification_read_all') {
+            $stmt=$pdo->prepare('UPDATE praan_notifications SET read_at=CURRENT_TIMESTAMP WHERE user_id=? AND read_at IS NULL');
+            $stmt->execute([admin_id()]);flash('success','সব নোটিফিকেশন পড়া হয়েছে।');
+        } else {
+            $stmt=$pdo->prepare('UPDATE praan_notifications SET read_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?');
+            $stmt->execute([(int)($_POST['id']??0),admin_id()]);
+        }
+    }catch(Throwable $e){error_log('PRAAN notification action: '.$e->getMessage());flash('danger','নোটিফিকেশন পরিবর্তন করা যায়নি।');}
+    redirect('notifications');
+}
+
 if(($page==='register'&&!praan_enabled('public_registration_enabled'))||($page==='directory'&&!praan_enabled('public_directory_enabled'))){
     http_response_code(404);page_start('এই বিভাগটি বন্ধ');echo '<div class="directory-empty"><h2>এই বিভাগটি বর্তমানে বন্ধ রয়েছে।</h2></div>';page_end();exit;
 }
 if (!have_admin() && $page !== 'setup') redirect('setup');
+
+// Externally visible record IDs are opaque. Numeric legacy links redirect only for an
+// authenticated user or a visitor holding the original 48-character receipt secret.
+if(($_SERVER['REQUEST_METHOD']??'GET')==='GET' && in_array($page,['view','submitted','edit','print','photo','download_docx'],true) && isset($_GET['id'])){
+    $requested=(string)$_GET['id'];
+    if(ctype_digit($requested)){
+        $q=$pdo->prepare('SELECT id,public_token,receipt_hash FROM volunteers WHERE id=?');$q->execute([(int)$requested]);$row=$q->fetch();
+        $receipt=(string)($_GET['token']??'');
+        $allowed=admin() || ($receipt!=='' && strlen($receipt)===48 && $row && !empty($row['receipt_hash']) && hash_equals((string)$row['receipt_hash'],hash('sha256',$receipt)));
+        if(!$row||!$allowed){praan_error_page(404,'রেকর্ড পাওয়া যায়নি।');}
+        $params=$_GET;$params['id']=$row['public_token'];
+        header('Location: index.php?'.http_build_query($params,'','&',PHP_QUERY_RFC3986),true,302);exit;
+    }
+    if(!preg_match('/^PRAAN-VOL-[0-9A-HJKMNP-TV-Z]{20}$/D',$requested)){praan_error_page(404,'রেকর্ড পাওয়া যায়নি।');}
+    $q=$pdo->prepare('SELECT id FROM volunteers WHERE public_token=?');$q->execute([$requested]);
+    $id=$q->fetchColumn();if(!$id){praan_error_page(404,'রেকর্ড পাওয়া যায়নি।');}
+    $_GET['id']=(string)$id;
+}
+
 
 // System Doctor and read-only progress; both require update-management authorization.
 if ($page === 'system_doctor' && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') {
@@ -46,6 +94,23 @@ if ($page === 'update_progress' && ($_SERVER['REQUEST_METHOD']??'GET')==='GET') 
     require_admin();praan_require('updates.manage');
     header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store, private');
     echo json_encode(praan_update_progress_read(),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
+}
+if ($page === 'security_center') {praan_security_center($pdo);exit;}
+if ($page === 'privacy_desk') {praan_privacy_desk($pdo);exit;}
+if (($_SERVER['REQUEST_METHOD']??'GET')==='POST' && in_array($page,['privacy_create','privacy_resolve','security_cleanup'],true)) {
+    praan_require('security.manage');verify_csrf();
+    try {
+        um_require_password((string)($_POST['password']??''));
+        if($page==='security_cleanup'){
+            $counts=praan_production_cleanup($pdo);
+            log_action(null,'security_housekeeping',implode(', ',array_map(static fn($k,$v)=>$k.'='.$v,array_keys($counts),$counts)));
+            flash('success','পুরোনো অস্থায়ী লগ/সেশন পরিষ্কার হয়েছে; স্বেচ্ছাসেবক ও Audit Log অক্ষত।');
+        } else {
+            praan_privacy_action($pdo,$page,$_POST);
+            flash('success','Privacy Request সংরক্ষণ করা হয়েছে।');
+        }
+    }catch(Throwable $e){error_log('PRAAN privacy/security action: '.$e->getMessage());flash('danger','পরিবর্তন হয়নি: '.$e->getMessage());}
+    redirect($page==='security_cleanup'?'security_center':'privacy_desk');
 }
 if ($page === 'offline_status') {
     if(($_SERVER['REQUEST_METHOD']??'')!=='GET'){http_response_code(405);exit('Method Not Allowed');}
@@ -80,6 +145,7 @@ if ($page === 'setup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
         $pdo->prepare('INSERT INTO users(uid,username,display_name,password_hash,status) VALUES(?,?,?,?,?)')->execute([praan_uid('USR'),$username,mb_safe_limit($name,100),password_hash($password,PASSWORD_DEFAULT),'active']);
         $newAdminId=(int)$pdo->lastInsertId();
+        $pdo->prepare('UPDATE users SET display_code=? WHERE id=?')->execute([praan_next_user_code($pdo),$newAdminId]);
         $rid=(int)$pdo->query("SELECT id FROM roles WHERE slug='super_admin'")->fetchColumn();
         $pdo->prepare('INSERT INTO user_roles(user_id,role_id) VALUES(?,?)')->execute([$newAdminId,$rid]);
         $pdo->commit();
@@ -91,6 +157,8 @@ if ($page === 'setup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($page === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     if (!ip_throttle('login',15,900)) { flash('danger','অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।'); redirect('login'); }
+    $loginUsername=trim((string)($_POST['username']??''));
+    if(praan_login_username_locked($pdo,$loginUsername)){flash('danger','অনেকবার ভুল পাসওয়ার্ড দেওয়া হয়েছে। ১৫ মিনিট পরে চেষ্টা করুন।');redirect('login');}
     $q=$pdo->prepare('SELECT * FROM users WHERE username=?'); $q->execute([trim((string)($_POST['username'] ?? ''))]); $user=$q->fetch();
     if ($user && $user['status']==='active' && $user['deleted_at']===null && password_verify((string)($_POST['password'] ?? ''),(string)$user['password_hash'])) {
         session_regenerate_id(true); $_SESSION['admin_id'] = (int)$user['id']; $_SESSION['admin_name'] = $user['display_name'];
@@ -138,6 +206,10 @@ if ($page === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if(!admin()&&!praan_enabled('public_registration_enabled')){http_response_code(403);exit('পাবলিক নিবন্ধন বন্ধ রয়েছে।');}
     verify_csrf();
     $isAdmin = admin() && (string)($_POST['entry_type'] ?? 'admin') !== 'public';
+    if (!$isAdmin && praan_enabled('public_honeypot_enabled') && (trim((string)($_POST['website_url']??''))!=='' || !isset($_SESSION['praan_public_form_opened_at']) || time()-(int)$_SESSION['praan_public_form_opened_at']<2)) {
+        if($ajax)praan_save_json(['ok'=>false,'message'=>'ফর্মটি আবার খুলে চেষ্টা করুন।'],422);
+        http_response_code(422);exit('ফর্মটি আবার খুলে চেষ্টা করুন।');
+    }
     if (!$isAdmin && !ip_throttle('register',10,3600)) { if($ajax)praan_save_json(['ok'=>false,'message'=>'অতিরিক্ত নিবন্ধন হয়েছে। পরে চেষ্টা করুন।'],429);flash('danger','এই সংযোগ থেকে অতিরিক্ত ফর্ম জমা হয়েছে। পরে চেষ্টা করুন।'); redirect('register'); }
     $id = (int)($_POST['id'] ?? 0);
     $old = $id ? fetch_volunteer($id) : null;
@@ -183,14 +255,38 @@ if ($page === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $source = $old ? (string)$old['source_type'] : ($isAdmin ? (!empty($_POST['quick_mode'])?'paper':'admin') : 'public');
     if ($isAdmin && $id===0 && (string)($_POST['source_type']??'') === 'admin') $source = 'admin';
     $publicVisible = !empty($_POST['public_visible']) ? 1 : 0;
+    // An operator may publish a profile only after explicitly confirming separate consent.
+    if($isAdmin && $publicVisible===1 && (int)($old['public_visible']??0)!==1 && empty($_POST['confirm_public_consent'])){
+        if($ajax)praan_save_json(['ok'=>false,'message'=>'পাবলিক তালিকায় প্রকাশের পৃথক সম্মতি যাচাই করুন।'],422);
+        flash('danger','পাবলিক তালিকায় প্রকাশের পৃথক সম্মতি নিশ্চিত করুন।');
+        $_SESSION['form_draft']=$data;
+        redirect($id?'edit':'new',$id?['id'=>$id]:[]);
+    }
+    // Names can repeat. Exact identity documents block duplicates; shared mobiles prompt review.
+    if(!$old){
+        $evidence=praan_duplicate_evidence($pdo,$data);
+        if($evidence['document']){
+            $message='এই NID/জন্মনিবন্ধন নম্বরে নিবন্ধন আগে থেকেই আছে।';
+            if($ajax)praan_save_json(['ok'=>false,'message'=>$message],409);
+            $_SESSION['form_draft']=$data;flash('danger',$message);redirect($isAdmin?'new':'register');
+        }
+        if($evidence['phone'] && $isAdmin && empty($_POST['confirm_shared_phone'])){
+            $message='এই মোবাইল নম্বর অন্য রেকর্ডে আছে। পরিবারের শেয়ার করা নম্বর হলে Confirm করুন।';
+            if($ajax)praan_save_json(['ok'=>false,'message'=>$message,'possible_duplicate'=>true],409);
+            $_SESSION['form_draft']=$data;flash('warning',$message);redirect('new');
+        }
+    }
+    if(!$old&&!empty($evidence['phone']))log_action(null,'shared_phone_review','Matched phone on another volunteer record');
     $photo = (string)($old['photo_file']??'');
     try {
         $previousPhoto=$photo;
         if($isAdmin && !empty($_POST['remove_photo'])) $photo='';
         $photo=store_photo($_FILES['photo']??null,$photo);
-        if($photo!==$previousPhoto && $previousPhoto && is_file(PHOTO_DIR.'/'.$previousPhoto)) @unlink(PHOTO_DIR.'/'.$previousPhoto);
+        $createdPhoto=($photo!==$previousPhoto)?$photo:'';
+        // Keep the previous image until the database has successfully committed the change.
         $receipt = !$isAdmin && !$old ? bin2hex(random_bytes(24)) : '';
         $saved = save_volunteer($data,$old,$source,$publicVisible,$photo,$receipt ? hash('sha256',$receipt) : '');
+        if($photo!==$previousPhoto && $previousPhoto && is_file(PHOTO_DIR.'/'.$previousPhoto)) @unlink(PHOTO_DIR.'/'.$previousPhoto);
         if(praan_uid_valid($draftUid,'DRF')){try{media_attach_ready($pdo,$draftUid,$saved);}catch(Throwable $mediaError){error_log('PRAAN image attach after save: '.$mediaError->getMessage());}}
         unset($_SESSION['form_draft']);
         if($ajax){
@@ -302,6 +398,7 @@ if ($page === 'update_backup_verify' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 if ($page === 'update_backup_download') {
     require_admin();
+    log_action(null,'full_backup_download','private update backup');
     try{$path=um_backup_path((string)($_GET['name']??''));
         header('Content-Type: application/zip');header('X-Content-Type-Options: nosniff');header('Cache-Control: no-store, private');
         header('Content-Disposition: attachment; filename="'.basename($path).'"');header('Content-Length: '.filesize($path));readfile($path);exit;
@@ -428,8 +525,10 @@ if ($page === 'import_preview' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if(!move_uploaded_file((string)$file['tmp_name'],$path))throw new RuntimeException('অস্থায়ী ফাইল রাখা যায়নি।');
         @chmod($path,0600);
         if(!empty($_SESSION['import_pending']['path']))@unlink((string)$_SESSION['import_pending']['path']);
-        $stats=import_process($pdo,$headers,$rows,$mode,true);
-        $_SESSION['import_pending']=['path'=>$path,'extension'=>$extension,'time'=>time(),'stats'=>$stats,'format'=>$mode];
+        $existingMode=(string)($_POST['existing_mode']??'update');
+        if(!in_array($existingMode,['update','skip'],true))throw new RuntimeException('Import করার পদ্ধতি সঠিক নয়।');
+        $stats=import_process($pdo,$headers,$rows,$mode,true,$existingMode);
+        $_SESSION['import_pending']=['path'=>$path,'extension'=>$extension,'time'=>time(),'stats'=>$stats,'format'=>$mode,'existing_mode'=>$existingMode,'digest'=>hash_file('sha256',$path)];
         flash('info','Import Preview প্রস্তুত। যাচাই করে নিশ্চিত করুন; এখনো ডাটাবেইসে কিছু যোগ হয়নি।');
     } catch(Throwable $e) {
         if(!empty($path) && is_file($path))@unlink($path);
@@ -445,11 +544,18 @@ if ($page === 'import_commit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if(!$pending || !is_array($pending) || time()-(int)($pending['time']??0)>1200 || !str_starts_with((string)$pending['path'],__DIR__.'/storage/import_previews/'))throw new RuntimeException('Import Preview-এর সময় শেষ। ফাইলটি আবার দিন।');
         $file=(string)$pending['path'];
         if(!is_file($file))throw new RuntimeException('ফাইল পাওয়া যায়নি।');
+        if(!hash_equals((string)($pending['digest']??''),(string)hash_file('sha256',$file)))throw new RuntimeException('Import ফাইল Preview-এর পর বদলেছে; পুনরায় Preview করুন।');
         [$headers,$rows,$mode]=import_sheet_file($file,(string)$pending['extension']);
-        $stats=import_process($pdo,$headers,$rows,$mode,false);
+        $existingMode=(string)($pending['existing_mode']??'update');
+        $recheck=import_process($pdo,$headers,$rows,$mode,true,$existingMode);
+        foreach(['total','added','updated','skipped','review','invalid'] as $key){
+            if((int)($pending['stats'][$key]??-1)!==(int)($recheck[$key]??-2))throw new RuntimeException('Preview-এর পর ডাটাবেইসে পরিবর্তন হয়েছে; নতুন করে Preview করুন।');
+        }
+        $stats=import_process($pdo,$headers,$rows,$mode,false,$existingMode);
         @unlink($file);unset($_SESSION['import_pending']);
-        flash('success','ইমপোর্ট সম্পন্ন: '.$stats['added'].'টি যোগ, '.$stats['duplicates'].'টি ডুপ্লিকেট, '.$stats['invalid'].'টি অসম্পূর্ণ।');
-        redirect('volunteers');
+        $_SESSION['praan_import_last']=['stats'=>$stats,'at'=>time()];
+        flash('success','Import সম্পন্ন: নতুন '.$stats['added'].'টি · আপডেট '.$stats['updated'].'টি · বাদ '.$stats['skipped'].'টি · যাচাই প্রয়োজন '.$stats['review'].'টি · অসম্পূর্ণ '.$stats['invalid'].'টি।');
+        redirect('import');
     } catch(Throwable $e) {
         error_log('PRAAN Import commit: '.$e->getMessage());
         flash('danger','ইমপোর্ট করা যায়নি: '.$e->getMessage());redirect('import');
@@ -467,7 +573,7 @@ if ($page === 'bulk_action' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $ids=array_values(array_unique(array_filter(array_map('intval',$ids),fn($i)=>$i>0)));
     if((string)($_POST['confirmed']??'')!=='1') {flash('danger','অ্যাকশন নিশ্চিত হয়নি।');redirect('volunteers');}
     try {
-        if($action==='export_xlsx'||$action==='export_csv')table_selected_export($ids,substr($action,7));
+        if($action==='export_xlsx'||$action==='export_csv'){log_action(null,'bulk_export_download','format='.substr($action,7).', count='.count($ids));table_selected_export($ids,substr($action,7));}
         $result=table_action($pdo,$action,$ids);
         flash('success',$result['count'].'টি রেকর্ডে কাজ সম্পন্ন।'.($action==='archive'?' Soft Delete হয়েছে, Restore করা যাবে।':''));
     } catch(Throwable $e) {flash('danger','অ্যাকশন ব্যর্থ: '.$e->getMessage());}
@@ -477,6 +583,7 @@ if ($page === 'bulk_action' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 if ($page === 'backup') {
     require_admin();
+    log_action(null,'database_backup_download','sqlite online backup');
     $tmp = tempnam(sys_get_temp_dir(), 'pran_');
     if ($tmp === false) { http_response_code(500); exit('ব্যাকআপের জন্য টেম্প ফাইল তৈরি করা যায়নি।'); }
     @unlink($tmp);
@@ -495,6 +602,7 @@ if ($page === 'backup') {
 }
 if ($page === 'export') {
     require_admin();
+    log_action(null,'volunteer_export_download','format='.substr((string)($_GET['format']??''),0,8));
     if ((string)($_GET['format']??'')==='xlsx') export_xlsx();
     if ((string)($_GET['format']??'')==='csv') export_csv();
 }
@@ -539,6 +647,7 @@ if ($page === 'photo') {
     header('Content-Type: '.$mime);header('Cache-Control: private, max-age=120');header('Content-Length: '.filesize($file));readfile($file);exit;
 }
 if ($page === 'print') {
+    if(admin())log_action((int)($_GET['id']??0),'form_print_access');
     $v=fetch_volunteer((int)($_GET['id']??0));
     if(!$v || !can_view_volunteer($v)) {http_response_code(403);exit('অনুমতি নেই বা লিংক সঠিক নয়।');}
     printable_record($v);exit;
@@ -603,10 +712,25 @@ if ($page === 'import') {
     page_start('Excel ও CSV Import','import',true); ?>
     <div class="pro-heading"><div><span class="eyebrow">IMPORT / EXPORT · SAME DATA DICTIONARY</span><h2>স্বেচ্ছাসেবক তথ্য আমদানি</h2><p>Google Forms Responses অথবা সাইট থেকে Export করা সম্পূর্ণ Excel/CSV ফাইল সরাসরি আমদানি করুন।</p></div><div class="pro-heading-actions"><a class="btn btn-outline-success" href="<?=e(url('form_export',['format'=>'xlsx']))?>"><i class="bi bi-file-earmark-excel"></i> Google Form Export</a><a class="btn btn-outline-brand" href="<?=e(url('template_full'))?>"><i class="bi bi-file-earmark-arrow-down"></i> Full Template</a></div></div>
     <div class="pro-import-grid"><div class="card pro-table-card"><div class="card-body p-4"><div class="pro-import-steps"><span>01 <b>ফাইল আপলোড</b></span><span>02 <b>Preview ও ডুপ্লিকেট যাচাই</b></span><span>03 <b>Confirm ও Import</b></span></div>
-      <form method="post" enctype="multipart/form-data" action="<?=e(url('import_preview'))?>" class="mt-4"><?=csrf_field()?><label class="pro-upload-zone" for="pranImportFile"><i class="bi bi-cloud-arrow-up"></i><strong>Excel (.xlsx) অথবা CSV (.csv) নির্বাচন করুন</strong><span>সর্বোচ্চ ৮ MB · Google Forms 54 columns / PRAAN Complete Export</span><input id="pranImportFile" name="file" class="form-control mt-3" type="file" accept=".xlsx,.csv,.txt" required></label><button class="btn btn-brand mt-3" type="submit"><i class="bi bi-shield-check"></i> Import Preview দেখুন</button></form>
+      <form method="post" enctype="multipart/form-data" action="<?=e(url('import_preview'))?>" class="mt-4"><?=csrf_field()?><label class="pro-upload-zone" for="pranImportFile"><i class="bi bi-cloud-arrow-up"></i><strong>Excel (.xlsx) অথবা CSV (.csv) নির্বাচন করুন</strong><span>সর্বোচ্চ ৮ MB · Google Forms 54 columns / PRAAN Complete Export</span><input id="pranImportFile" name="file" class="form-control mt-3" type="file" accept=".xlsx,.csv,.txt" required></label>
+      <fieldset class="mt-3 mb-2 p-3 border rounded-3 bg-light"><legend class="fs-6 fw-semibold float-none w-auto px-2">বিদ্যমান রেকর্ডের জন্য কী করবেন?</legend>
+      <label class="d-flex gap-2 align-items-start mb-2"><input type="radio" name="existing_mode" value="update" checked class="form-check-input mt-1"><span><strong>Update Existing + Import New</strong><small class="d-block text-muted">আগের Volunteer ID বা NID মিললে একই রেকর্ডে ফাইলের পূরণ করা তথ্য আপডেট; ছবি, প্রকাশ অনুমতি ও পুরোনো ID অক্ষত থাকবে।</small></span></label>
+      <label class="d-flex gap-2 align-items-start"><input type="radio" name="existing_mode" value="skip" class="form-check-input mt-1"><span><strong>Only New Records</strong><small class="d-block text-muted">বিদ্যমান রেকর্ডে কোনো পরিবর্তন নয়, শুধু নতুনদের যুক্ত করুন।</small></span></label>
+      </fieldset><button class="btn btn-brand mt-3" type="submit"><i class="bi bi-shield-check"></i> Import Preview দেখুন</button></form>
       <div class="pro-template-links"><a href="<?=e(url('template_google'))?>"><i class="bi bi-file-earmark-text"></i> Google Forms ৫৪-কলাম টেমপ্লেট</a><a href="<?=e(url('template_full'))?>"><i class="bi bi-file-earmark-spreadsheet"></i> সম্পূর্ণ ফিল্ড টেমপ্লেট</a></div></div></div>
-      <div class="card pro-table-card"><div class="card-body p-4"><h3 class="h5 mb-3">নিরাপদ আমদানির নিয়ম</h3><div class="pro-import-tips"><p><i class="bi bi-check-circle"></i> ৫৪টি Google Forms কলাম হুবহু সমর্থিত; মূল না-বদলানো মান সংরক্ষিত।</p><p><i class="bi bi-check-circle"></i> প্রয়োজনীয় ফোনে শুরুর ০ ফিরিয়ে দেয়; Excel serial date ঠিক করে।</p><p><i class="bi bi-check-circle"></i> একই Volunteer ID, Form No অথবা নাম+মোবাইল থাকলে ডুপ্লিকেট এড়িয়ে চলে।</p><p><i class="bi bi-check-circle"></i> নতুন Import হওয়া প্রোফাইল পাবলিক তালিকায় স্বয়ংক্রিয়ভাবে প্রকাশ হয় না।</p><p><i class="bi bi-check-circle"></i> ডাটাবেইস পরিবর্তনের আগে Preview ও Confirm থাকবে।</p></div><div class="alert alert-warning small">মূল ফাইলে অনুপস্থিত ঠিকানা, সম্মতি বা অন্যান্য তথ্য অনুমান করে পূরণ করা হয় না। Import শেষে Edit-এ যাচাই করুন।</div></div></div></div>
-    <?php if($pending):$stats=$pending['stats'];?><div class="card pro-table-card mt-3"><div class="card-body p-4"><h3><i class="bi bi-clipboard-check"></i> Import Preview — এখনো ডাটাবেইসে যোগ হয়নি</h3><div class="pro-import-stats"><span>মোট <b><?=e($stats['total'])?></b></span><span>যোগ হবে <b><?=e($stats['added'])?></b></span><span>ডুপ্লিকেট <b><?=e($stats['duplicates'])?></b></span><span>অসম্পূর্ণ <b><?=e($stats['invalid'])?></b></span></div><p class="text-muted small">ধরণ: <?=e($pending['format'])?> · ২০ মিনিটের মধ্যে নিশ্চিত করুন।</p><?php foreach($stats['warnings'] as $warning):?><p class="small text-warning"><i class="bi bi-exclamation-triangle"></i> <?=e($warning)?></p><?php endforeach;?><div class="d-flex gap-2 flex-wrap"><form method="post" action="<?=e(url('import_commit'))?>"><?=csrf_field()?><button class="btn btn-brand" type="submit" onclick="return confirm('Preview যাচাই করেছেন? নতুন রেকর্ড ডাটাবেইসে যুক্ত করতে নিশ্চিত করুন।')"><i class="bi bi-database-check"></i> Confirm & Import</button></form><form method="post" action="<?=e(url('import_cancel'))?>"><?=csrf_field()?><button type="submit" class="btn btn-outline-secondary">বাতিল করুন</button></form></div></div></div><?php endif;?>
+      <div class="card pro-table-card"><div class="card-body p-4"><h3 class="h5 mb-3">নিরাপদ আমদানির নিয়ম</h3><div class="pro-import-tips"><p><i class="bi bi-check-circle"></i> ৫৪টি Google Forms কলাম হুবহু সমর্থিত; মূল না-বদলানো মান সংরক্ষিত।</p><p><i class="bi bi-check-circle"></i> প্রয়োজনীয় ফোনে শুরুর ০ ফিরিয়ে দেয়; Excel serial date ঠিক করে।</p><p><i class="bi bi-check-circle"></i> আগের Volunteer ID বা NID/জন্মনিবন্ধন মিললে একই রেকর্ড Update/Skip; একই নাম বা শেয়ার্ড ফোনে ব্লক নয়।</p><p><i class="bi bi-check-circle"></i> নতুন Import হওয়া প্রোফাইল পাবলিক তালিকায় স্বয়ংক্রিয়ভাবে প্রকাশ হয় না।</p><p><i class="bi bi-check-circle"></i> ডাটাবেইস পরিবর্তনের আগে Preview ও Confirm থাকবে।</p></div><div class="alert alert-warning small">মূল ফাইলে অনুপস্থিত ঠিকানা, সম্মতি বা অন্যান্য তথ্য অনুমান করে পূরণ করা হয় না। Import শেষে Edit-এ যাচাই করুন।</div></div></div></div>
+    <?php if($pending):$stats=$pending['stats'];?><div class="card pro-table-card mt-3"><div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"><h3 class="m-0"><i class="bi bi-clipboard-check"></i> Import Preview — এখনও ডাটাবেইসে কিছু পরিবর্তন হয়নি</h3><span class="badge bg-info text-dark"><?=($pending['existing_mode']??'update')==='update'?'Update Existing + New':'Only New'?></span></div>
+      <div class="pro-import-stats"><span>মোট <b><?=e($stats['total'])?></b></span><span class="text-success">নতুন <b><?=e($stats['added'])?></b></span><span class="text-primary">আপডেট <b><?=e($stats['updated'])?></b></span><span>বাদ <b><?=e($stats['skipped'])?></b></span><span class="text-danger">যাচাই প্রয়োজন <b><?=e($stats['review'])?></b></span><span>অসম্পূর্ণ <b><?=e($stats['invalid'])?></b></span></div>
+      <div class="alert alert-info small mt-3">একই নাম বা একই ফোন নম্বরকে ডুপ্লিকেট ধরে বাতিল করা হয় না। পুরোনো Volunteer ID অথবা পরিচয়পত্র নম্বর মিললে একই ব্যক্তির তথ্য আপডেট করা হবে। একই তথ্য দুই ভিন্ন ব্যক্তির বলে মনে হলে সেই সারি যাচাইয়ের জন্য আলাদা থাকবে। <strong>বর্তমান Preview-তে ফাইলের সঙ্গে লাইভ ডাটাবেইস মিলিয়ে সিদ্ধান্ত দেখানো হয়েছে।</strong></div>
+      <p class="small text-muted"><?=e($pending['format'])?> ফরম্যাট · Preview ২০ মিনিট বৈধ · এক ফাইলে সর্বোচ্চ ২৫০০ রেকর্ড · প্রয়োজনে ১৫০টি সারি পর্যন্ত নিচে দেখা যাবে।</p>
+      <?php foreach($stats['warnings'] as $warning):?><p class="small text-warning"><i class="bi bi-exclamation-triangle"></i> <?=e($warning)?></p><?php endforeach;?>
+      <div class="table-responsive border rounded-3 mb-3" style="max-height:450px;overflow:auto"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-light" style="position:sticky;top:0;z-index:1"><tr><th>Excel Row</th><th>Volunteer ID</th><th>নাম</th><th>ফলাফল</th><th>কারণ</th></tr></thead><tbody>
+      <?php foreach(($stats['rows']??[]) as $r): $status=$r['status']??'review';$styles=['new'=>'success','update'=>'primary','skipped'=>'secondary','review'=>'warning','invalid'=>'danger'];$labels=['new'=>'নতুন','update'=>'আপডেট','skipped'=>'বাদ','review'=>'যাচাই','invalid'=>'অসম্পূর্ণ']; ?><tr><td><?=e($r['line'])?></td><td><?=e($r['code']?:'—')?></td><td><?=e($r['name']?:'—')?></td><td><span class="badge bg-<?=e($styles[$status]??'secondary')?>"><?=e($labels[$status]??$status)?></span></td><td class="small"><?=e($r['reason'])?></td></tr><?php endforeach; ?></tbody></table></div>
+      <?php if(($stats['phone_warnings']??0)>0):?><p class="small text-warning"><i class="bi bi-info-circle"></i> <?=e($stats['phone_warnings'])?>টি নতুন সারিতে অন্য ব্যক্তির ফোন নম্বর পাওয়া গেছে—তবু Import বন্ধ হবে না। পরে সত্যতা যাচাই করুন।</p><?php endif;?>
+      <div class="d-flex gap-2 flex-wrap"><form method="post" action="<?=e(url('import_commit'))?>"><?=csrf_field()?><button class="btn btn-brand" type="submit" onclick="return confirm('Preview যাচাই করেছেন? <?=e($stats['added'])?>টি নতুন রেকর্ড তৈরি হবে এবং <?=e($stats['updated'])?>টি বিদ্যমান রেকর্ডের পূরণ করা তথ্য আপডেট হবে। চালিয়ে যাবেন?')"><i class="bi bi-database-check"></i> Confirm & Import</button></form><form method="post" action="<?=e(url('import_cancel'))?>"><?=csrf_field()?><button type="submit" class="btn btn-outline-secondary">বাতিল করুন</button></form></div>
+    </div></div><?php endif;?>
+    <?php $last=$_SESSION['praan_import_last']??null; if(is_array($last)&&time()-(int)($last['at']??0)<3600):$ls=$last['stats'];?><div class="alert alert-success mt-3"><strong><i class="bi bi-check-circle"></i> সর্বশেষ Import সম্পন্ন:</strong> মোট <?=e($ls['total'])?> · নতুন <?=e($ls['added'])?> · আপডেট <?=e($ls['updated'])?> · বাদ <?=e($ls['skipped'])?> · ম্যানুয়াল যাচাই <?=e($ls['review'])?> · অসম্পূর্ণ <?=e($ls['invalid'])?>। <a href="<?=e(url('volunteers'))?>">তালিকা দেখুন</a></div><?php endif;?>
     <?php page_end(true);exit;
 }
 if ($page === 'backup') {
@@ -677,4 +801,4 @@ if($page==='directory') {
     <?php if(!$list):?><div class="directory-empty"><i class="bi bi-people"></i><h3>এখনও প্রকাশযোগ্য প্রোফাইল নেই</h3><p>অনুমোদন ও স্বেচ্ছাসেবকের প্রকাশের সম্মতি থাকলে এখানে দেখা যাবে।</p><a href="<?=e(url('register'))?>" class="btn btn-brand">নতুন নিবন্ধন</a></div><?php endif; ?>
     <?php page_end();exit;
 }
-http_response_code(404);page_start('পৃষ্ঠা পাওয়া যায়নি');echo '<div class="directory-empty"><h1>404</h1><p>এই পৃষ্ঠাটি পাওয়া যায়নি।</p><a href="'.e(url('home')).'" class="btn btn-brand">হোমে ফিরুন</a></div>';page_end();
+praan_error_page(404, 'পৃষ্ঠা পাওয়া যায়নি।');

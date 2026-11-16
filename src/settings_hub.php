@@ -44,13 +44,19 @@ function praan_settings_schema(): array {
         'developer_badge_enabled'=>['Rony Siddiqi ব্যাজ চালু','bool','1'],
         'support_facebook'=>['Facebook URL','url','https://facebook.com/RonySiddiqi',220],
         'support_telegram'=>['Telegram URL','url','https://t.me/RonySiddiqi',220],
-        'support_whatsapp_phone'=>['WhatsApp নম্বর (দেশ কোডসহ, + ছাড়া)','phone','',18],
+        'support_whatsapp_phone'=>['WhatsApp নম্বর (দেশ কোডসহ, + ছাড়া)','phone','8801718417417',18],
       ]],
       'security'=>['title'=>'সেশন ও নিরাপত্তা','icon'=>'bi-fingerprint','items'=>[
         'admin_idle_minutes'=>['অ্যাডমিন নিষ্ক্রিয় থাকলে লগআউট','select','30',['15'=>'15 মিনিট','30'=>'30 মিনিট','60'=>'60 মিনিট','120'=>'120 মিনিট']],
+        'public_honeypot_enabled'=>['পাবলিক ফর্মের অদৃশ্য স্প্যাম ট্র্যাপ','bool','1'],
+        'security_login_retention_days'=>['লগইন হিস্ট্রি রিটেনশন','select','180',['30'=>'৩০ দিন','90'=>'৯০ দিন','180'=>'১৮০ দিন','365'=>'৩৬৫ দিন']],
+        'security_session_retention_days'=>['রিভোকড সেশন রিটেনশন','select','30',['7'=>'৭ দিন','30'=>'৩০ দিন','90'=>'৯০ দিন']],
       ]],
       'updates'=>['title'=>'আপডেট ও রক্ষণাবেক্ষণ','icon'=>'bi-arrow-repeat','items'=>[
         'update_notice_enabled'=>['Update Center লিংক ও ব্যাজ দেখানো','bool','1'],
+        'github_auto_check'=>['GitHub আপডেট স্বয়ংক্রিয় পরীক্ষা','bool','1'],
+        'github_check_interval'=>['GitHub পরীক্ষা করার ব্যবধান','select','12',['6'=>'৬ ঘণ্টা','12'=>'১২ ঘণ্টা','24'=>'২৪ ঘণ্টা']],
+        'notifications_enabled'=>['ইন-অ্যাপ নোটিফিকেশন','bool','1'],
       ]],
     ];
 }

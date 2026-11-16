@@ -17,6 +17,8 @@ function site_head(string $title): void {
     <meta name="praan-command" content="<?=praan_enabled('command_palette_enabled')?'1':'0'?>">
     <?php if(praan_enabled('pwa_enabled')): ?><link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="assets/pwa-icon-192.png"><?php endif; ?><meta name="theme-color" content="<?= e($accent) ?>">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=<?=APP_VERSION?>">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/pwa-icon-192.png">
     <title><?= e($title) ?> | <?=e(praan_option('site_title'))?></title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
@@ -27,12 +29,15 @@ function site_head(string $title): void {
     <link rel="stylesheet" href="assets/analytics.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/update-center.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/praan-operations.css?v=<?= APP_VERSION ?>">
+    <link rel="stylesheet" href="assets/praan-production.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/volunteer-table.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/praan-foundation.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/praan-media.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/praan-access.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/praan-modules.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/praan-mobile.css?v=<?= APP_VERSION ?>">
+    <link rel="stylesheet" href="assets/praan-identity.css?v=<?= APP_VERSION ?>">
+    <link rel="stylesheet" href="assets/praan-notifications.css?v=<?= APP_VERSION ?>">
     <style>:root{--accent:<?=e($accent)?>;--accent-dark:<?=e($accent)?>}</style>
     <script>try{document.documentElement.setAttribute('data-bs-theme',localStorage.getItem('pran_theme')||'light')}catch(e){}</script>
     </head><?php
@@ -49,6 +54,7 @@ function site_scripts(): void { ?>
     <script src="assets/praan-modules.js?v=<?= APP_VERSION ?>"></script>
     <script src="assets/praan-mobile.js?v=<?= APP_VERSION ?>"></script>
     <script src="assets/praan-offline.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/praan-notifications.js?v=<?= APP_VERSION ?>"></script>
     <?php
 }
 function page_start(string $title, string $active = '', bool $dashboard = false): void {
@@ -58,16 +64,29 @@ function page_start(string $title, string $active = '', bool $dashboard = false)
         <nav class="app-header navbar navbar-expand bg-body border-bottom">
             <div class="container-fluid"><ul class="navbar-nav"><li class="nav-item"><a class="nav-link" data-lte-toggle="sidebar" href="#" id="pranSidebarToggle" aria-expanded="true" aria-controls="pranAdminSidebar" aria-label="সাইডবার মেনু"><i class="bi bi-list fs-5"></i></a></li></ul>
             <div class="top-search d-none d-md-flex"><form action="index.php" method="get" class="d-flex"><input type="hidden" name="page" value="volunteers"><i class="bi bi-search"></i><input type="search" name="q" placeholder="নাম, মোবাইল বা ID দিয়ে খুঁজুন..." aria-label="Search"></form></div>
-            <div class="ms-auto d-flex align-items-center gap-2 gap-md-3"><?php if(praan_enabled('command_palette_enabled')):?><button type="button" class="icon-button praan-command-trigger" data-praan-command-open title="Command Palette Ctrl+K" aria-label="দ্রুত সার্চ"><i class="bi bi-command"></i></button><?php endif;?><button type="button" class="icon-button praan-install-trigger" data-praan-install hidden title="Install PRAAN" aria-label="অ্যাপ ইনস্টল করুন"><i class="bi bi-download"></i></button><button type="button" class="icon-button theme-toggle" title="ডার্ক মোড"><i class="bi bi-moon-stars"></i></button><?php if(praan_can('volunteers.create')):?><a href="<?=e(url('new'))?>" class="btn btn-brand btn-sm"><i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">নতুন এন্ট্রি</span></a><?php endif;?><a class="admin-initial" href="<?=e(url('profile'))?>" title="<?=e($_SESSION['admin_name'] ?? 'Profile')?>"><?=e(praan_initial((string)($_SESSION['admin_name']??'A')))?></a></div></div>
+            <div class="ms-auto d-flex align-items-center gap-2 gap-md-3"><?php if(praan_enabled('notifications_enabled')):?><?=praan_notification_bell_html(db(),(int)admin_id())?><?php endif;?><?php if(praan_enabled('command_palette_enabled')):?><button type="button" class="icon-button praan-command-trigger" data-praan-command-open title="Command Palette Ctrl+K" aria-label="দ্রুত সার্চ"><i class="bi bi-command"></i></button><?php endif;?><button type="button" class="icon-button praan-install-trigger" data-praan-install hidden title="Install PRAAN" aria-label="অ্যাপ ইনস্টল করুন"><i class="bi bi-download"></i></button><button type="button" class="icon-button theme-toggle" title="ডার্ক মোড"><i class="bi bi-moon-stars"></i></button><?php if(praan_can('volunteers.create')):?><a href="<?=e(url('new'))?>" class="btn btn-brand btn-sm"><i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">নতুন এন্ট্রি</span></a><?php endif;?><a class="admin-initial" href="<?=e(url('profile'))?>" title="<?=e($_SESSION['admin_name'] ?? 'Profile')?>"><?=e(praan_initial((string)($_SESSION['admin_name']??'A')))?></a></div></div>
         </nav>
         <aside class="app-sidebar shadow" id="pranAdminSidebar" data-bs-theme="dark"><div class="sidebar-brand"><a href="<?=e(url('dashboard'))?>" class="brand-link"><img src="assets/pran-logo.png" alt="PRAAN" class="sidebar-logo"><span class="brand-text"><?=e(praan_option('site_title'))?> <small><?=e(praan_option('site_tagline'))?></small></span></a></div>
         <div class="sidebar-wrapper"><nav class="mt-3"><ul class="nav sidebar-menu flex-column" role="menu">
-            <?php foreach ([
-                ['dashboard','bi-grid-1x2','Advanced Dashboard'],['volunteers','bi-people','স্বেচ্ছাসেবক তালিকা'],['new','bi-person-plus','নতুন ফর্ম এন্ট্রি'],['import','bi-cloud-arrow-up','Excel / CSV ইমপোর্ট'],['reports','bi-bar-chart-line','Advanced Reports'],['activity','bi-clock-history','অ্যাক্টিভিটি লগ'],['archived','bi-archive','আর্কাইভ'],['export','bi-file-earmark-excel','Excel এক্সপোর্ট'],['updates','bi-arrow-repeat','সাইট আপডেট'],['system_doctor','bi-heart-pulse','System Doctor'],['settings','bi-sliders','Control Center'],['modules','bi-puzzle','Module Manager'],['users','bi-person-gear','ইউজার ম্যানেজমেন্ট'],['roles','bi-shield-lock','রোল ও পারমিশন'],['sessions','bi-laptop','অ্যাক্টিভ সেশন'],['login_history','bi-clock-history','লগইন হিস্ট্রি'],['profile','bi-person-circle','আমার প্রোফাইল'],
-            ] as [$key,$icon,$label]): ?>
-            <?php if(($key==='import'&&!praan_module_access('import'))||($key==='reports'&&!praan_module_access('reports'))||($key==='updates'&&!praan_enabled('update_notice_enabled'))||($key!=='profile' && praan_route_permission($key)!==null && !praan_can(praan_route_permission($key))))continue; ?>
-            <li class="nav-item"><a href="<?=e(url($key))?>" class="nav-link <?= $key===$active?'active':''?>"><i class="nav-icon bi <?=e($icon)?>"></i><p><?=e($label)?></p></a></li>
-            <?php endforeach; ?>
+            <?php
+            $menuGroups=[
+              'OVERVIEW'=>[['dashboard','bi-grid-1x2','ড্যাশবোর্ড'],['volunteers','bi-people','স্বেচ্ছাসেবক তালিকা'],['new','bi-person-plus','নতুন নিবন্ধন']],
+              'DATA & REPORTS'=>[['import','bi-cloud-arrow-up','Import'],['reports','bi-bar-chart-line','রিপোর্ট'],['export','bi-file-earmark-excel','Excel Export'],['archived','bi-archive','আর্কাইভ']],
+              'TEAM & ACCESS'=>[['users','bi-person-gear','ইউজার'],['roles','bi-shield-lock','রোল ও অনুমতি'],['sessions','bi-laptop','সেশন']],
+              'SYSTEM'=>[['notifications','bi-bell','নোটিফিকেশন'],['settings','bi-sliders','সেটিংস'],['modules','bi-puzzle','মডিউল'],['updates','bi-arrow-repeat','আপডেট'],['system_doctor','bi-heart-pulse','System Doctor'],['security_center','bi-shield-check','Security'],['privacy_desk','bi-person-lock','Privacy'],['activity','bi-clock-history','অ্যাক্টিভিটি'],['login_history','bi-clock-history','লগইন ইতিহাস'],['profile','bi-person-circle','আমার প্রোফাইল']],
+            ];
+            foreach($menuGroups as $groupLabel=>$items){
+              $shown=[];foreach($items as $item){$key=$item[0];
+                if(($key==='import'&&!praan_module_access('import'))||($key==='reports'&&!praan_module_access('reports'))||($key!=='profile' && praan_route_permission($key)!==null && !praan_can(praan_route_permission($key))))continue;
+                $shown[]=$item;
+              }
+              if(!$shown)continue;
+              $isActive=in_array($active,array_column($shown,0),true);
+              echo '<li class="nav-item praan-menu-group"><details '.($isActive||$groupLabel==='OVERVIEW'?'open':'').'><summary><i class="bi bi-chevron-right"></i> '.e($groupLabel).'</summary><ul class="nav flex-column">';
+              foreach($shown as [$key,$icon,$label])echo '<li class="nav-item"><a href="'.e(url($key)).'" class="nav-link '.($active===$key?'active':'').'"><i class="nav-icon bi '.e($icon).'"></i><p>'.e($label).'</p></a></li>';
+              echo '</ul></details></li>';
+            }
+            ?>
             <li class="nav-header">PUBLIC ACCESS</li>
             <li class="nav-item"><a href="<?=e(url('home'))?>" class="nav-link"><i class="nav-icon bi bi-globe"></i><p>পাবলিক পোর্টাল</p></a></li>
             <?php if(praan_enabled('public_directory_enabled')&&praan_module_access('directory')):?><li class="nav-item"><a href="<?=e(url('directory'))?>" class="nav-link"><i class="nav-icon bi bi-card-list"></i><p>পাবলিক ডিরেক্টরি</p></a></li><?php endif;?>
@@ -116,7 +135,7 @@ function praan_mobile_bottom_nav(): void {
 }
 function praan_mobile_widgets(): void {
     if(praan_enabled('command_palette_enabled') && admin()) {
-      $items=[['dashboard','bi-house-door','ড্যাশবোর্ড','dashboard.view'],['volunteers','bi-people','স্বেচ্ছাসেবক তালিকা','volunteers.view'],['new','bi-person-plus','নতুন স্বেচ্ছাসেবক','volunteers.create'],['reports','bi-graph-up','রিপোর্ট ও বিশ্লেষণ','reports.view'],['import','bi-file-earmark-arrow-up','Excel / CSV ইমপোর্ট','import.use'],['settings','bi-sliders','Control Center','settings.manage'],['modules','bi-puzzle','মডিউল ম্যানেজার','modules.view'],['users','bi-person-gear','ইউজার ম্যানেজমেন্ট','users.view'],['updates','bi-arrow-repeat','সিস্টেম আপডেট','updates.manage'],['system_doctor','bi-heart-pulse','System Doctor','updates.manage'],['profile','bi-person-circle','আমার প্রোফাইল','dashboard.view']];
+      $items=[['notifications','bi-bell','নোটিফিকেশন','dashboard.view'],['dashboard','bi-house-door','ড্যাশবোর্ড','dashboard.view'],['volunteers','bi-people','স্বেচ্ছাসেবক তালিকা','volunteers.view'],['new','bi-person-plus','নতুন স্বেচ্ছাসেবক','volunteers.create'],['reports','bi-graph-up','রিপোর্ট ও বিশ্লেষণ','reports.view'],['import','bi-file-earmark-arrow-up','Excel / CSV ইমপোর্ট','import.use'],['settings','bi-sliders','Control Center','settings.manage'],['modules','bi-puzzle','মডিউল ম্যানেজার','modules.view'],['users','bi-person-gear','ইউজার ম্যানেজমেন্ট','users.view'],['updates','bi-arrow-repeat','সিস্টেম আপডেট','updates.manage'],['system_doctor','bi-heart-pulse','System Doctor','updates.manage'],['security_center','bi-shield-check','Security Center','security.view'],['privacy_desk','bi-person-lock','Privacy Desk','security.view'],['profile','bi-person-circle','আমার প্রোফাইল','dashboard.view']];
       echo '<dialog id="praanCommandDialog" class="praan-command-dialog" aria-label="দ্রুত সার্চ ও কমান্ড"><div class="praan-command-head"><i class="bi bi-search"></i><input type="search" id="praanCommandInput" placeholder="পেজ বা কমান্ড খুঁজুন…" autocomplete="off" aria-label="পেজ খুঁজুন"><button type="button" data-praan-command-close aria-label="বন্ধ করুন">ESC</button></div><div class="praan-command-results" id="praanCommandResults" role="listbox">';
       foreach($items as [$page,$icon,$label,$permission]){
         if(!praan_can($permission))continue;
@@ -145,7 +164,9 @@ function render_input(string $field, array $def, array $data): void {
     $classes = 'field-item' . ($wide ? ' field-wide' : '');
     $id = 'f-' . $field;
     echo '<div class="'.e($classes).'"><label class="form-label" for="'.e($id).'">'.e($label).'</label>';
-    if ($type === 'multi') {
+    if ($field === 'form_no') {
+        echo '<input class="form-control" id="f-form_no" value="'.e($value ?: 'FOR-XXXXX (সংরক্ষণের পর)').'" readonly><small class="text-muted">স্বয়ংক্রিয়ভাবে তৈরি হবে · পরিবর্তন করা যায় না</small>';
+    } elseif ($type === 'multi') {
         $items = is_array($value) ? $value : [];
         echo '<div class="choice-grid" id="'.e($id).'">';
         foreach ($def[2] as $key => $text) {
@@ -185,6 +206,7 @@ function volunteer_form(?array $volunteer, bool $isAdmin, bool $quickMode = fals
     $sections = form_sections();
     $isEdit = !empty($volunteer);
     $isPublic = !$isAdmin;
+    if ($isPublic) $_SESSION['praan_public_form_opened_at'] = time();
     $storedDraft=(string)($volunteer['draft_uid']??'');
     $draftForForm=praan_uid_valid($storedDraft,'DRF')?$storedDraft:praan_uid('DRF');
     ?>
@@ -192,7 +214,7 @@ function volunteer_form(?array $volunteer, bool $isAdmin, bool $quickMode = fals
     <div class="form-workspace" data-wizard>
     <nav class="step-nav" aria-label="ফর্মের ধাপ"><button type="button" class="step-link current" data-go="0"><b>01</b><span>পরিচিতি ও ব্যক্তিগত</span></button><button type="button" class="step-link" data-go="1"><b>02</b><span>ঠিকানা</span></button><button type="button" class="step-link" data-go="2"><b>03</b><span>দক্ষতা ও আগ্রহ</span></button><button type="button" class="step-link" data-go="3"><b>04</b><span>অভিজ্ঞতা</span></button><button type="button" class="step-link" data-go="4"><b>05</b><span>সম্মতি ও সংযুক্তি</span></button><?php if($isAdmin):?><button type="button" class="step-link" data-go="5"><b>06</b><span>অফিস ব্যবহার</span></button><?php endif;?></nav>
     <form method="post" enctype="multipart/form-data" action="<?=e(url('save'))?>" id="volunteerForm" data-praan-draft="<?=praan_enabled('draft_recovery_enabled')?'1':'0'?>" data-praan-draft-scope="<?=$isAdmin?'local':'session'?>" data-praan-draft-key="<?=e($isEdit?'edit-'.(int)$volunteer['id']:($isAdmin?'admin-new-'.(int)admin_id():'public-new'))?>" data-praan-async="<?=praan_enabled('async_photo_enabled')&&praan_flag_enabled('media','async_upload')?'1':'0'?>" data-praan-media-endpoint="index.php" data-praan-offline-form="<?=$isAdmin&&!$isEdit&&praan_enabled('offline_queue_enabled')?'1':'0'?>">
-        <?=csrf_field()?><input type="hidden" name="entry_type" value="<?=$isAdmin?'admin':'public'?>"><input type="hidden" name="id" value="<?=e($volunteer['id'] ?? '')?>"><input type="hidden" name="quick_mode" value="<?=$quickMode?'1':'0'?>"><input type="hidden" name="draft_uid" value="<?=e($draftForForm)?>">
+        <?=csrf_field()?><?php if($isPublic):?><div class="praan-honeypot" aria-hidden="true" style="position:absolute!important;left:-10000px!important;opacity:0!important"><label>Website<input type="text" name="website_url" value="" autocomplete="off" tabindex="-1"></label></div><?php endif;?><input type="hidden" name="entry_type" value="<?=$isAdmin?'admin':'public'?>"><input type="hidden" name="id" value="<?=e($volunteer['id'] ?? '')?>"><input type="hidden" name="quick_mode" value="<?=$quickMode?'1':'0'?>"><input type="hidden" name="draft_uid" value="<?=e($draftForForm)?>">
         <section class="form-step active" data-step="0"><div class="form-section-heading"><span class="section-number">A</span><div><h3>নিবন্ধন পরিচিতি ও ব্যক্তিগত তথ্য</h3><p>মূল ফর্মের প্রথম পৃষ্ঠা</p></div></div>
         <div class="field-grid"><?php foreach ($sections['header']['fields'] as $key=>$def) render_input($key,$def,$data); ?></div>
         <div class="photo-upload"><div class="photo-mark"><i class="bi bi-camera"></i></div><div><strong>পাসপোর্ট সাইজ ছবি</strong><p>ঐচ্ছিক · JPG, PNG বা WebP · সর্বোচ্চ <?=e(praan_option('max_photo_mb'))?>MB</p><input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="form-control form-control-sm" data-praan-photo><span class="praan-upload-help" aria-live="polite">ছবি নির্বাচন করলে ব্যাকগ্রাউন্ডে ১ MB করে আপলোড হবে। মাঝপথে বন্ধ হলে একই ফাইল আবার নির্বাচন করুন।</span><?php if ($isEdit && $isAdmin && $volunteer['photo_file']):?><label class="small"><input type="checkbox" name="remove_photo" value="1"> পুরোনো ছবি মুছুন</label><?php endif;?></div></div>
@@ -206,8 +228,10 @@ function volunteer_form(?array $volunteer, bool $isAdmin, bool $quickMode = fals
             <?php foreach(['E','F','G'] as $sect):?><div class="subsection-title"><?=e($sections[$sect]['title'])?></div><div class="field-grid"><?php foreach($sections[$sect]['fields'] as $key=>$def) render_input($key,$def,$data);?></div><?php endforeach; ?>
             <div class="notice-box"><i class="bi bi-shield-check"></i><div><strong>তথ্য ও নিরাপত্তা</strong><p>নিবন্ধনের জন্য আচরণবিধি, নিরাপত্তা, গোপনীয়তা, তথ্য ব্যবহার ও জরুরি যোগাযোগের সম্মতি প্রযোজ্য। ছবি/ভিডিও ব্যবহারের সম্মতি সম্পূর্ণ ঐচ্ছিক।</p></div></div>
             <label class="consent-public"><input type="checkbox" name="public_visible" value="1" <?=!empty($volunteer['public_visible'])?'checked':''?>><span><strong>পাবলিক স্বেচ্ছাসেবক তালিকায় আমার সীমিত প্রোফাইল দেখাতে সম্মত</strong><small>শুধু নাম, স্বেচ্ছাসেবক আইডি, জেলা, দক্ষতা ও অনুমোদিত স্ট্যাটাস দেখানো হবে। ফোন, NID, ঠিকানা, আর্থিক তথ্য, ছবি প্রকাশ হবে না।</small></span></label>
+            <?php if($isAdmin):?><div class="notice-box mt-2"><i class="bi bi-shield-check"></i><div><label><input type="checkbox" name="confirm_public_consent" value="1"> <strong>আমি স্বেচ্ছাসেবকের পাবলিক তালিকায় প্রকাশের পৃথক সম্মতি যাচাই করেছি</strong></label><p class="mb-0 small">শুধু নতুন করে পাবলিক প্রকাশ চালু করতে এটি প্রয়োজন। অনুমতি না থাকলে তালিকায় দেখাবেন না।</p></div></div><?php endif;?>
         </section>
         <?php if($isAdmin):?><section class="form-step" data-step="5"><div class="form-section-heading"><span class="section-number">H</span><div><h3>শুধু অফিস ব্যবহারের জন্য</h3><p>যাচাই, অনুমোদন, ক্যাটাগরি ও টিম বরাদ্দ</p></div></div><div class="field-grid"><?php foreach($sections['H']['fields'] as $key=>$def) render_input($key,$def,$data);?></div></section><?php endif; ?>
+        <?php if($isAdmin&&!$isEdit):?><label class="form-check small mb-3"><input class="form-check-input" type="checkbox" name="confirm_shared_phone" value="1"> <span class="form-check-label">মোবাইল নম্বর অন্য ব্যক্তির হলেও তথ্য যাচাই করে নতুন নিবন্ধনের অনুমতি দিচ্ছি (শেয়ার্ড ফোন)</span></label><?php endif;?>
         <div class="wizard-footer"><span class="form-progress-label">ধাপ <b id="stepCurrent">১</b> / <?= $isAdmin?6:5 ?></span><div class="wizard-actions"><?php if($isAdmin&&!$isEdit&&praan_enabled('offline_queue_enabled')):?><button type="button" class="btn btn-outline-brand" id="praanOfflineSave"><i class="bi bi-cloud-slash"></i> অফলাইনে নিরাপদে রাখুন</button><?php endif;?><button type="button" class="btn btn-outline-secondary" id="stepPrev" style="display:none"><i class="bi bi-arrow-left"></i> আগের ধাপ</button><button type="button" class="btn btn-brand" id="stepNext">পরবর্তী ধাপ <i class="bi bi-arrow-right"></i></button><button type="submit" class="btn btn-success" id="formSubmit" style="display:none"><i class="bi bi-check2-circle"></i> <?= $isEdit?'পরিবর্তন সংরক্ষণ':'নিবন্ধন সংরক্ষণ' ?></button></div></div>
     </form><div id="praanEarlySaveResult" class="praan-early-save" hidden role="status" aria-live="polite"></div></div>
     <?php
@@ -222,7 +246,7 @@ function display_record(array $v): void {
     echo '<div><span class="eyebrow">'.e($v['volunteer_code']).'</span><h2>'.e($v['name_bn'] ?: $v['name_en']).'</h2><p>'.e($v['project'] ?: 'PRAAN Volunteer').'</p><span class="status-pill '.($v['status']==='সক্রিয়'?'success':'pending').'">'.e($v['status']).'</span></div></div><div class="record-actions">';
     if (praan_can('volunteers.edit')) echo '<a class="btn btn-outline-brand" href="'.e(url('edit',['id'=>$v['id']])).'"><i class="bi bi-pencil-square"></i> এডিট</a>';
     $authQuery = admin() ? [] : ['token'=>(string)($_GET['token'] ?? '')];
-    echo '<a class="btn btn-brand" href="'.e(url('print',array_merge(['id'=>$v['id']],$authQuery))).'" target="_blank" rel="noopener"><i class="bi bi-printer"></i> A4 প্রিন্ট / PDF</a>';
+    if(!admin() || praan_can('volunteers.sensitive')) echo '<a class="btn btn-brand" href="'.e(url('print',array_merge(['id'=>$v['id']],$authQuery))).'" target="_blank" rel="noopener"><i class="bi bi-printer"></i> A4 প্রিন্ট / PDF</a>';
     if (praan_can('volunteers.export') && praan_enabled('docx_export_enabled')) echo '<a class="btn btn-outline-brand" href="'.e(url('download_docx',['id'=>$v['id']])).'"><i class="bi bi-file-earmark-word"></i> DOCX ডাউনলোড</a>';
     echo '</div></div>';
     $limited=admin() && !praan_can('volunteers.sensitive');

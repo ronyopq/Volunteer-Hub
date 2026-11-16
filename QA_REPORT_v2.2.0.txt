@@ -1,0 +1,24 @@
+PRAAN v2.2.0 — QA REPORT — 2026-11-16
+
+PASS: PHP syntax — all app/src/tool PHP files.
+PASS: JavaScript syntax — all local asset JS files.
+PASS: CLI selftests: authz, module registry, production/security, update/migration catalog.
+PASS: Runtime include chain: render_system_doctor, praan_tx_read and update engine functions defined.
+PASS: Private exception handler returns ERR-XXXXXXXXXX and does not expose original secret test exception message.
+PASS: Python SQLite checks using the exact CREATE TABLE/INDEX statements from src/notifications.php:
+      new notifications table, per-user inbox isolation, dedupe unique key, read/unread update, foreign key checks.
+PASS: Signed-update code path allowlist includes static error documents.
+PASS: Required files and v2.2.0 version constant.
+PASS: ZIP CRC/integrity and no production database included (after archive build).
+
+NOT TESTED ON THE ACTUAL SERVER: Apache/PHP/FPM 500 behaviour, live GitHub API from target host,
+PDO SQLite application integration, PHP ZipArchive-backed online backup and update, WebAuthn/PWA,
+large volunteer database load, notification AJAX, live UI in authenticated browser.
+
+NOTE: The available PHP CLI runtime lacks pdo_sqlite, curl, zip and gd extensions. SQLite
+migration semantics were tested using Python sqlite3, not the production PHP PDO driver.
+Live app.praan.org.bd is not updated by generating this package. Deploy to staging first.
+
+GitHub repo check: ronyopq/Volunteer-Hub exists on main; published /releases/latest is currently
+404 (no published stable GitHub Release identified), so Signed One-Click Install cannot be
+used until a signed Release is published. Raw commits trigger informational alerts only.

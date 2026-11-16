@@ -1,0 +1,13 @@
+/* PRAAN v2.1: calm, grouped, keyboard-accessible sidebar */
+.praan-menu-group{margin:3px 7px!important}
+.praan-menu-group details{border-radius:10px;overflow:hidden}
+.praan-menu-group summary{list-style:none;cursor:pointer;color:#98b9c9;font-size:10px;letter-spacing:1.35px;font-weight:750;padding:12px 16px;display:flex;align-items:center;gap:9px;user-select:none}
+.praan-menu-group summary::-webkit-details-marker{display:none}
+.praan-menu-group summary i{transition:transform .2s ease;font-size:10px}
+.praan-menu-group details[open] summary i{transform:rotate(90deg)}
+.praan-menu-group .nav-link{margin:2px 4px 2px 8px!important;padding:10px 13px!important;border-radius:9px!important;min-height:38px}
+.praan-menu-group .nav-icon{font-size:16px!important;margin-right:11px!important}
+.praan-menu-group details:not([open]){background:rgba(255,255,255,.025)}
+.praan-menu-group summary:hover,.praan-menu-group summary:focus-visible{color:white;background:rgba(255,255,255,.055);outline-offset:-2px}
+.praan-menu-group .nav-link p{font-size:12px!important;white-space:normal}
+@media(max-width:767px){.praan-menu-group summary{padding:14px 18px}.praan-menu-group .nav-link{padding:13px 18px!important}}
