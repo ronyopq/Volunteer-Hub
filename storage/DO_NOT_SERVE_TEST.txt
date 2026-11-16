@@ -1,0 +1,1 @@
+PRAAN PRIVATE STORAGE TEST. If you can view this at a public URL, STOP: your hosting ignores Apache .htaccess protection. Do not store volunteer data here. Move storage outside web root and adjust DATA_PATH/PHOTO_DIR.

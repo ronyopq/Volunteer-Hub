@@ -1,0 +1,32 @@
+/* PRAAN v1.6 — responsive identity and access management. */
+.praan-access-tabs{display:flex;align-items:center;gap:.55rem;overflow:auto;padding:.25rem 0 1.1rem;scrollbar-width:thin}
+.praan-access-tabs a{display:inline-flex;align-items:center;gap:.45rem;white-space:nowrap;padding:.68rem .95rem;border:1px solid var(--bs-border-color,#d8e2e8);color:var(--bs-body-color,#15314d);text-decoration:none;background:var(--bs-body-bg,#fff);border-radius:.82rem;font-weight:650;font-size:.86rem;transition:background .2s,color .2s,transform .2s}
+.praan-access-tabs a.active,.praan-access-tabs a:hover{background:var(--accent,#168b8b);color:#fff;border-color:transparent;transform:translateY(-1px)}
+.praan-access-hero{background:linear-gradient(110deg,#102f4b,#126c7b 75%,#149a91);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:1.25rem;padding:1.5rem 1.9rem;border-radius:1.15rem;margin-bottom:1.2rem;box-shadow:0 14px 32px #0c52641c}
+.praan-access-hero h2{font-size:1.48rem;font-weight:800;margin:.35rem 0}.praan-access-hero p{margin:0;opacity:.85;max-width:640px;font-size:.9rem}
+.praan-access-hero>i{font-size:3.6rem;opacity:.34}.praan-access-hero .eyebrow{color:#b3e8e5;letter-spacing:.13em}
+.praan-role-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:.58rem;margin-top:.65rem}
+.praan-role-check{display:flex;gap:.6rem;align-items:center;padding:.66rem .78rem;background:var(--bs-tertiary-bg,#f4f7fa);border:1px solid var(--bs-border-color,#e3eaf1);border-radius:.65rem;cursor:pointer;flex-wrap:wrap}
+.praan-role-check input{accent-color:var(--accent,#168b8b)}.praan-role-check small{margin-left:auto;font-size:.68rem;color:var(--bs-secondary-color,#6d7986)}
+.praan-perm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:.8rem;margin-top:.85rem}
+.praan-perm-grid label{border:1px solid var(--bs-border-color,#dbe5ec);border-radius:.7rem;padding:.7rem;display:flex;justify-content:space-between;align-items:center;gap:.7rem}
+.praan-perm-grid label>span{font-size:.85rem;font-weight:600}.praan-perm-grid small,.praan-perm-list small{display:block;font-size:.67rem;font-weight:400;color:var(--bs-secondary-color,#8b97a6)}
+.praan-perm-grid select{max-width:110px}
+.praan-perm-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:.55rem}
+.praan-perm-list label{padding:.7rem;display:flex;align-items:flex-start;gap:.7rem;background:var(--bs-tertiary-bg,#f5f7f9);border-radius:.7rem;border:1px solid var(--bs-border-color,#e1e8f0)}
+.praan-perm-list label input{margin-top:.25rem;accent-color:var(--accent,#168b8b)}
+.praan-role-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}.praan-role-cards .card{margin:0}
+.praan-role-cards .card code{display:inline-block;margin-top:.25rem;font-size:.75rem}
+.praan-access-danger{margin-top:1.3rem;border:1px solid #f2c6c1;border-radius:.9rem;padding:1rem;background:color-mix(in srgb, #dc3545 4%, var(--bs-body-bg,#fff));display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end}
+.praan-access-danger h5{width:100%;font-size:1.02rem;font-weight:750;color:var(--bs-danger,#bd2939)}
+.praan-access-danger form{display:grid;gap:.5rem;max-width:260px;width:100%;font-size:.8rem}.praan-access-danger input{min-width:0}
+.praan-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.praan-logout-btn{display:flex;align-items:center;width:100%;border:0;background:transparent;color:inherit;text-align:left;padding:.65rem 1rem;cursor:pointer}
+.praan-logout-btn:hover{background:#254763;color:#fff}
+.praan-access-tabs::-webkit-scrollbar{height:5px}
+.praan-access-tabs::-webkit-scrollbar-thumb{background:#a1bdc3;border-radius:99px}
+@media(max-width:800px){.praan-profile-grid{grid-template-columns:1fr}.praan-access-hero{padding:1.05rem 1.2rem}.praan-access-hero>i{font-size:2.5rem}.praan-access-hero h2{font-size:1.2rem}.praan-perm-grid{grid-template-columns:1fr}.praan-access-danger form{max-width:none}}
+@media(prefers-reduced-motion:reduce){.praan-access-tabs a{transition:none}}
+
+.praan-identity-overview{display:flex;flex-wrap:wrap;align-items:center;gap:1.5rem;padding:1rem 1.2rem;margin:1.1rem 0;background:var(--bs-body-bg,#fff);border:1px solid var(--bs-border-color,#e0e9ee);border-radius:1rem}
+.praan-identity-overview>div{display:flex;align-items:center;gap:.75rem;min-width:155px}.praan-identity-overview>div>i{font-size:1.5rem;color:var(--accent,#168b8b)}.praan-identity-overview b{display:block;font-size:1.2rem}.praan-identity-overview small{font-size:.7rem;color:var(--bs-secondary-color,#6f7e8a)}.praan-identity-overview>a{margin-left:auto}

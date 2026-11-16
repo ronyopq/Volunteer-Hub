@@ -1,0 +1,61 @@
+PRAAN v1.9.0 — cPanel/Apache ইনস্টলেশন ও স্বাস্থ্য পরীক্ষা
+==================================================
+
+এটি v1.8.0 থেকে v1.9.0-এ আপডেট। সাইটের মূল URL:
+https://app.praan.org.bd/a/volunteer/
+
+নিরাপদ আপডেট (cPanel দিয়ে প্রথম ইনস্টল)
+---------------------------------------
+১) বর্তমান সম্পূর্ণ a/volunteer/ ফোল্ডার ও ডাটাবেইসের আলাদা ব্যাকআপ নিন।
+   storage/pran.sqlite, storage/photos/, storage/update_signer.pub, storage/update_backups/
+   এবং অন্যান্য private storage/config/backup/history আলাদা করে রাখুন।
+২) সম্ভব হলে লাইভ সাইটের কপি আলাদা staging URL-এ পরীক্ষা করুন।
+৩) cPanel File Manager থেকে app.praan.org.bd-র Document Root-এ যান।
+   `a/volunteer/` ফোল্ডারে ZIP খুলে ভেতরের ফাইলগুলো সরাসরি Overwrite করুন।
+   ZIP-এর জন্য অতিরিক্ত সাবফোল্ডার বানাবেন না।
+৪) `storage/` মুছবেন না এবং নতুন ZIP দিয়ে database replace করবেন না।
+৫) PHP 8.1+, pdo_sqlite, zip, sodium, curl, fileinfo এবং gd Extension পরীক্ষা করুন।
+৬) PHP File Permission ও `storage/` Directory Permission ঠিক আছে কি না দেখুন।
+৭) ব্রাউজারে Ctrl + Shift + R দিয়ে Refresh করুন।
+৮) Super Admin হিসেবে Login করে System Doctor খুলুন:
+   https://app.praan.org.bd/a/volunteer/index.php?page=system_doctor
+৯) Site Update Center-এ যান, 'Additive Database Migrations' থেকে
+   `Backup + Validate + Migrate` একবার চালান। এতে ব্যাকআপ হবে, নতুন টেবিল যোগ হবে।
+   আগে চালানো migration পুনরায় চালানো হবে না।
+১০) Verified Backup তৈরি ও Download করে অন্য নিরাপদ জায়গায় সংরক্ষণ করুন।
+
+Security / Access
+-----------------
+- `https://app.praan.org.bd/a/volunteer/storage/DO_NOT_SERVE_TEST.txt`
+  পরীক্ষা করলে HTTP 403/404 পাওয়া উচিত; HTTP 200 দেখলে এখনই ডাটা এন্ট্রি বন্ধ করুন।
+- src/, tools/, storage/, resources/, modules/ ফোল্ডার HTTP থেকে বন্ধ থাকা প্রয়োজন।
+- HTTPS চালু রাখুন; Admin Login History ও Permission পরীক্ষা করুন।
+- কোনো সোর্স কোড ZIP-এ ব্যক্তিগত স্বেচ্ছাসেবক তথ্য রাখা হয়নি।
+
+GitHub One-Click Update (পরবর্তী Release থেকে)
+---------------------------------------------
+১) Update Center-এ owner/repository লিখুন (শুধু পাবলিক Repo)।
+২) অফলাইন Release Signer দিয়ে তৈরি Ed25519 Public Key এখানে একবার সেট করুন।
+   Private Signing Key কখনো সাইটে রাখবেন না; GitHub-এও রাখবেন না।
+৩) OFFLINE-এ `php tools/release_signer.php package ...` দিয়ে তিনটি asset তৈরি করুন:
+    pran-update-vX.Y.Z.zip
+    pran-update-vX.Y.Z.zip.sha256
+    pran-update-vX.Y.Z.zip.sig
+   একই ভার্সনের GitHub Release (tag `vX.Y.Z`) হিসেবে তিনটি ফাইল প্রকাশ করুন।
+৪) Super Admin-কে release verify, backup ও install নিশ্চিত করতে হবে।
+৫) AJAX UI-তে Download → Verify → Maintenance → Backup → Install → Migration → Done
+   progress দেখা যাবে। ব্রাউজারের ট্যাব খোলা রাখুন এবং কাজের মাঝখানে রিফ্রেশ করবেন না।
+৬) সমস্যা হলে Update Center-এর Recovery অথবা Verified Code Rollback ব্যবহার করুন।
+   অটোমেটিক rollback ব্যর্থ হলে Maintenance Mode বন্ধ না করে cPanel দিয়ে restore করুন।
+
+IMPORTANT
+---------
+* One-click update শুধু স্বাক্ষরিত/বিশ্বস্ত GitHub Release-এ কাজ করে। সাধারণ ZIP মানেই
+  trusted release নয়। File SHA-256 checksum নিজেরা publish করলেই authenticity হয় না;
+  trusted Ed25519 public key জরুরি।
+* Rollback আগের কোড ফিরিয়ে আনে; নতুন SQLite Volunteer data বা ছবি মুছে দেয় না।
+  Additive Migration-এ নতুন টেবিল/কলাম থেকে যেতে পারে।
+* PHP crash/disk-full/অর্ধেক লেখা PHP ফাইল হলে Web Recovery খুলতে নাও পারে;
+  তাই আপনার আলাদা cPanel/offsite ব্যাকআপ অপরিহার্য।
+* Laravel/Composer/Artisan এই প্রজেক্টের অংশ নয়। Migration এই অ্যাপের নিজস্ব PHP runner।
+* আপনার লাইভ সাইটে এখানে থেকে ফাইল আপলোড করা হয়নি; নিজে স্টেজিংয়ে পরীক্ষা করে Deploy করুন।

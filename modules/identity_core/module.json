@@ -1,0 +1,12 @@
+{
+  "title": "ইউজার ও অ্যাক্সেস কন্ট্রোল",
+  "description": "লগইন, Role, Permission এবং নিরাপদ Session",
+  "core": true,
+  "requires": [],
+  "routes": [],
+  "features": {},
+  "settings": {},
+  "id": "identity_core",
+  "version": "1.7.0",
+  "default_enabled": true
+}

@@ -1,0 +1,17 @@
+{
+  "title": "স্বেচ্ছাসেবক নিবন্ধন",
+  "description": "মূল নিবন্ধন, সংশোধন, যাচাই, তালিকা ও A4 প্রিন্ট",
+  "core": true,
+  "requires": [],
+  "routes": [],
+  "features": {
+    "quick_entry": {
+      "title": "দ্রুত ফর্ম এন্ট্রি",
+      "default": true
+    }
+  },
+  "settings": {},
+  "id": "volunteer_core",
+  "version": "1.7.0",
+  "default_enabled": true
+}

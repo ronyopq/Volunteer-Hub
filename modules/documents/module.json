@@ -1,0 +1,16 @@
+{
+  "title": "DOCX Documents",
+  "description": "৩ পৃষ্ঠার A4 DOCX ফর্ম ডাউনলোড",
+  "requires": [
+    "volunteer_core"
+  ],
+  "routes": [
+    "download_docx"
+  ],
+  "features": {},
+  "settings": {},
+  "id": "documents",
+  "version": "1.7.0",
+  "core": false,
+  "default_enabled": true
+}

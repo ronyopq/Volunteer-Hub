@@ -1,0 +1,23 @@
+{
+  "title": "Resumable Media Upload",
+  "description": "১ MB চাংক, Progress Toast, Auto-Attach",
+  "requires": [
+    "volunteer_core"
+  ],
+  "routes": [
+    "media_init",
+    "media_status",
+    "media_chunk"
+  ],
+  "features": {
+    "async_upload": {
+      "title": "Background Upload / Resume",
+      "default": true
+    }
+  },
+  "settings": {},
+  "id": "media",
+  "version": "1.7.0",
+  "core": false,
+  "default_enabled": true
+}

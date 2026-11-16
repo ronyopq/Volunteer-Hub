@@ -1,0 +1,35 @@
+{
+  "title": "Advanced Analytics & Reporting",
+  "description": "ড্যাশবোর্ড বিশ্লেষণ, চার্ট, CSV/XLSX রিপোর্ট",
+  "requires": [
+    "volunteer_core"
+  ],
+  "routes": [
+    "reports",
+    "report_download",
+    "report_print"
+  ],
+  "features": {
+    "detail_export": {
+      "title": "রিপোর্ট থেকে বিস্তারিত ডাটা এক্সপোর্ট",
+      "default": true
+    }
+  },
+  "settings": {
+    "trend_months": {
+      "title": "ট্রেন্ড চার্টে মাস",
+      "type": "select",
+      "default": "12",
+      "choices": {
+        "6": "৬ মাস",
+        "12": "১২ মাস",
+        "18": "১৮ মাস",
+        "24": "২৪ মাস"
+      }
+    }
+  },
+  "id": "reports",
+  "version": "1.7.0",
+  "core": false,
+  "default_enabled": true
+}

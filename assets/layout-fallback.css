@@ -1,0 +1,107 @@
+/* PRAN v1.0.2: offline-safe AdminLTE 4 application layout.
+   Covers layout primitives if third-party AdminLTE stylesheet fails to load.
+   Scoped to admin pages; does not change the print layout or public portal. */
+.admin-layout .app-wrapper {
+  display:grid!important;
+  grid-template-columns:265px minmax(0,1fr)!important;
+  grid-template-rows:68px minmax(calc(100vh - 118px),auto) auto!important;
+  grid-template-areas:"pran-sidebar pran-header" "pran-sidebar pran-main" "pran-sidebar pran-footer"!important;
+  min-height:100vh!important;
+  width:100%!important;
+  align-items:stretch!important;
+}
+.admin-layout .app-header {
+  grid-area:pran-header!important;
+  position:sticky!important; top:0!important;
+  display:flex!important; align-items:center!important;
+  min-width:0!important; width:100%!important;
+  z-index:1020!important; margin:0!important;
+  padding:0 12px!important;
+  background:var(--surface,#fff)!important;
+}
+.admin-layout .app-header .container-fluid { width:100%; }
+.admin-layout .app-sidebar {
+  grid-area:pran-sidebar!important;
+  position:sticky!important; inset:auto!important;
+  top:0!important; align-self:start!important;
+  width:265px!important; min-width:265px!important; max-width:265px!important;
+  height:100vh!important; min-height:100vh!important; max-height:100vh!important;
+  overflow:hidden!important; transform:none!important;
+  z-index:1040!important; margin:0!important;
+  transition:transform .2s ease!important;
+}
+.admin-layout .app-sidebar .sidebar-brand {flex:0 0 75px}
+.admin-layout .sidebar-wrapper {
+  display:block!important;
+  height:calc(100vh - 75px)!important;
+  overflow-y:auto!important; overflow-x:hidden!important;
+  scrollbar-width:thin;
+}
+.admin-layout .sidebar-wrapper > nav {width:100%;}
+.admin-layout .sidebar-menu {
+  display:flex!important; flex-direction:column!important;
+  list-style:none!important; margin:0!important; padding:0 10px!important;
+  min-width:0!important; width:100%!important;
+}
+.admin-layout .sidebar-menu .nav-item {display:block!important;width:100%!important; margin:2px 0!important;}
+.admin-layout .sidebar-menu .nav-link {
+  width:100%!important; min-height:43px!important; display:flex!important;
+  align-items:center!important; gap:11px!important;
+  margin:0!important; padding:10px 13px!important;
+  border-radius:9px!important;
+  color:#b7cce0!important; background:transparent;
+  text-decoration:none!important; white-space:normal!important;
+}
+.admin-layout .sidebar-menu .nav-link:hover {background:#1b4262!important;color:#fff!important}
+.admin-layout .sidebar-menu .nav-link.active {background:#1b7b84!important;color:#fff!important;box-shadow:inset 3px 0 0 #78f0df}
+.admin-layout .sidebar-menu .nav-link .nav-icon {display:inline-flex!important;justify-content:center!important;align-items:center!important;flex:0 0 19px!important;width:19px!important;margin:0!important;font-size:17px!important;}
+.admin-layout .sidebar-menu .nav-link p {margin:0!important;padding:0!important;display:block!important;flex:1 1 auto!important;font-size:13px!important;font-weight:600!important;line-height:1.5!important;white-space:normal!important;}
+.admin-layout .sidebar-menu .nav-header {display:block!important;margin:16px 0 6px!important;padding:7px 13px!important;font-size:10px!important;letter-spacing:.11em!important;color:#75b4d6!important;}
+.admin-layout .sidebar-bottom {padding:18px 18px 24px;font-size:11px;color:#8db0c7;}
+.admin-layout .app-main {
+  grid-area:pran-main!important;
+  display:block!important; position:relative!important;
+  min-width:0!important; width:100%!important;
+  margin:0!important; margin-inline-start:0!important;
+  padding:0!important; overflow:visible!important;
+}
+.admin-layout .app-main .app-content-header,
+.admin-layout .app-main .app-content {width:100%!important;max-width:100%!important;}
+.admin-layout .app-main .container-fluid {max-width:100%!important;min-width:0;}
+.admin-layout .app-footer {
+  grid-area:pran-footer!important; display:block!important;
+  min-width:0!important;width:100%!important; margin:0!important;
+  margin-inline-start:0!important; padding:16px 25px!important;
+}
+.admin-layout.pran-sidebar-collapsed .app-wrapper {
+  grid-template-columns:0 minmax(0,1fr)!important;
+}
+.admin-layout.pran-sidebar-collapsed .app-sidebar {
+  transform:translateX(-105%)!important;
+  pointer-events:none!important;
+}
+.pran-sidebar-backdrop {display:none!important}
+@media (max-width:991.98px) {
+  .admin-layout .app-wrapper {
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:62px minmax(calc(100vh - 112px),auto) auto!important;
+    grid-template-areas:"pran-header" "pran-main" "pran-footer"!important;
+  }
+  .admin-layout .app-header {min-height:62px!important;}
+  .admin-layout .app-sidebar {
+    display:block!important;position:fixed!important;top:0!important;left:0!important;
+    width:265px!important;transform:translateX(-105%)!important;
+    box-shadow:0 8px 30px #0c263757!important;
+  }
+  .admin-layout.pran-sidebar-open .app-sidebar {transform:translateX(0)!important;pointer-events:auto!important;}
+  .admin-layout .app-main,.admin-layout .app-footer {margin-left:0!important;margin-inline-start:0!important;}
+  .admin-layout.pran-sidebar-open .pran-sidebar-backdrop {
+    display:block!important;position:fixed;inset:0;z-index:1035;
+    border:0;padding:0;background:rgba(6,19,33,.55);cursor:pointer;
+  }
+}
+@media(max-width:520px) {
+  .admin-layout .app-header {padding:0 5px!important;}
+  .admin-layout .app-main .container-fluid {padding-left:12px!important;padding-right:12px!important;}
+  .admin-layout .app-footer {padding:14px!important;}
+}

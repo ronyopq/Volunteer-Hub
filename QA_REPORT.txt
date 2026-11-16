@@ -1,0 +1,34 @@
+PRAAN v1.9.0 QA — 2026-11-16
+=============================
+PASS: PHP source lint (28 files)
+PASS: JavaScript static syntax and inline update UI syntax
+PASS: Role/permission self-tests (previous suite)
+PASS: Module registry and gate self-tests (previous suite)
+PASS: Update-specific self-tests: version, signed file inclusion, unsafe paths,
+      additive migration parsing, destructive SQL rejection
+PASS: Python SQLite test of migration SQL schema and transaction rollback
+PASS: Update ZIP structure/integrity (after packaging)
+
+NOT AVAILABLE IN THIS BUILD RUNTIME:
+- php-pdo_sqlite PHP extension (Python sqlite3 used for SQL tests).
+- PHP ZipArchive & curl extensions.
+- PHP+SQLite+ZipArchive+GitHub signed-release full integration test.
+- Apache/cPanel HTTP access control and production filesystem permission test.
+- Live site deployment and actual restoration drill.
+
+REQUIRED STAGING TESTS BEFORE PRODUCTION:
+1) Backup production copy (SQLite + photos + code) and download/verify ZIP.
+2) System Doctor → SQLite integrity + HTTPS/storage checks.
+3) Super Admin-only update actions; test a non-super admin as well.
+4) Backup + Validate + Migrate; second run must not duplicate migration.
+5) Sign a test release with separately stored offline private signing key;
+   upload 3 artifacts to a controlled GitHub test release.
+6) Confirm all 6 progress phases and old form/export/PWA behavior.
+7) Force controlled install failure; verify code files and new-only files recover.
+8) Test manual rollback; confirm volunteer records and images remain intact.
+9) Simulate an interrupted transaction on staging and test Recovery.
+10) Prove storage URL is inaccessible externally (403/404).
+
+RISK: Web-based updater cannot guarantee recovery after a PHP syntax error,
+filesystem corruption or interrupted process. Maintain offsite backups and
+cPanel access. Rollback is CODE ONLY; SQLite schema migrations are additive.

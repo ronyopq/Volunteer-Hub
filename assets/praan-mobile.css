@@ -1,0 +1,43 @@
+/* PRAAN 1.8 mobile-first progressive UI. */
+.praan-install-trigger[hidden]{display:none!important}
+.praan-bottom-nav{display:none}
+.praan-command-trigger{display:inline-grid;place-items:center}
+.praan-command-dialog,.praan-queue-dialog{position:fixed;inset:auto;max-width:min(620px,calc(100% - 24px));width:100%;border:1px solid #d8e7e8;border-radius:20px;padding:0;background:var(--bs-body-bg,#fff);color:var(--bs-body-color,#1f3245);box-shadow:0 24px 80px #051c3280;z-index:4000}
+.praan-command-dialog{top:12vh;margin:0 auto;left:0;right:0}
+.praan-command-dialog::backdrop,.praan-queue-dialog::backdrop{background:#071b31a8;backdrop-filter:blur(3px)}
+.praan-command-head{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid #dce7ea}
+.praan-command-head>.bi{font-size:20px;color:#128a86}.praan-command-head input{border:0;outline:0;background:transparent;color:inherit;width:100%;font-size:18px}
+.praan-command-head button{background:#edf4f5;color:#516b74;border:0;border-radius:9px;padding:5px 9px}
+.praan-command-results{max-height:min(60vh,550px);overflow:auto;padding:8px}
+.praan-command-item{display:flex;align-items:center;gap:15px;padding:13px 14px;text-decoration:none;color:inherit;border-radius:12px}
+.praan-command-item:hover,.praan-command-item:focus{background:color-mix(in srgb,var(--accent,#168b8b) 13%,transparent);outline:0}
+.praan-command-item .bi:first-child{font-size:20px;color:#178c87}.praan-command-item span{flex:1}.praan-command-item .bi:last-child{opacity:.5}
+.praan-command-item[hidden]{display:none!important}.praan-command-foot{padding:12px 20px;border-top:1px solid #e5eeee;color:#72818e;font-size:12px}
+.praan-queue-fab{position:fixed;z-index:950;right:18px;bottom:20px;display:flex;gap:8px;align-items:center;background:#173d50;color:#fff;border:1px solid #458d89;padding:9px 14px;border-radius:99px;box-shadow:0 8px 28px #10283a37;font-size:12px;font-weight:700}
+.praan-queue-fab b{background:#fff;color:#145666;padding:1px 7px;border-radius:30px}.praan-queue-fab b[hidden]{display:none}
+.praan-queue-dialog{top:15vh;left:0;right:0;margin:0 auto;padding:20px;max-width:540px}
+.praan-queue-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.praan-queue-heading h2{font-size:20px;margin:0}.praan-queue-row{border:1px solid #d6e7e8;border-radius:13px;padding:12px;margin-bottom:9px;display:flex;justify-content:space-between;gap:10px;align-items:center}.praan-queue-row small{color:#687d89}.praan-queue-actions{display:flex;gap:5px;flex-wrap:wrap}.praan-queue-row button{font-size:12px}
+.praan-page-transition{pointer-events:none;position:fixed;inset:0;z-index:2000;visibility:hidden}.praan-page-progress{display:block;background:linear-gradient(90deg,#13b9ad,#2d718c);height:3px;width:40%;transform:translateX(-110%);box-shadow:0 0 10px #16b4a6}.praan-page-skeleton{position:absolute;top:92px;right:4vw;width:27%;height:10px;border-radius:12px;background:linear-gradient(110deg,transparent,#a2d3d2,transparent);opacity:.65}
+.praan-navigating .praan-page-transition{visibility:visible}.praan-navigating .praan-page-progress{animation:praan-loading 1.2s ease-in-out infinite}.praan-navigating .praan-page-skeleton{animation:praan-skeleton 1.5s ease-in-out infinite}
+@keyframes praan-loading{to{transform:translateX(300%)}}@keyframes praan-skeleton{50%{opacity:.2}}
+.praan-connection-pill{display:none;position:fixed;top:72px;right:18px;z-index:2100;padding:9px 14px;background:#fff4d7;color:#774c00;border:1px solid #eed596;border-radius:10px;box-shadow:0 3px 20px #11233824;font-size:12px}
+.praan-offline .praan-connection-pill{display:block}
+@media(max-width:991.98px){
+  .praan-bottom-nav{display:flex;align-items:stretch;justify-content:space-around;position:fixed;bottom:0;left:0;right:0;bottom:env(safe-area-inset-bottom,0);height:65px;background:var(--bs-body-bg,#fff);box-shadow:0 -6px 25px #0e314018;border-top:1px solid #d8e9e9;z-index:990;padding:4px 6px}
+  .praan-bottom-link{border:0;background:transparent;min-width:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:#6b7b8f;border-radius:12px;font-size:11px;font-weight:600}
+  .praan-bottom-link .bi{font-size:21px;line-height:1}.praan-bottom-link.active{background:#e7f7f4;color:#087d75}
+  .admin-layout .app-main,.public-body .public-main{padding-bottom:75px!important}.app-footer,.public-footer{padding-bottom:80px!important}
+  .praan-queue-fab{bottom:calc(80px + env(safe-area-inset-bottom,0px));right:10px;padding:9px}.praan-queue-fab span{display:none}
+  .praan-command-dialog{top:9vh}.praan-queue-dialog{top:9vh}
+  .praan-connection-pill{top:61px;left:12px;right:12px;text-align:center}
+  .wizard-actions #praanOfflineSave{width:100%;margin-bottom:6px}
+}
+@media(max-width:390px){.praan-bottom-link{font-size:10px}.praan-bottom-link .bi{font-size:19px}}
+@media(prefers-reduced-motion:reduce){.praan-page-transition{display:none!important}.praan-bottom-link,.praan-command-item{transition:none!important}}
+@view-transition{navigation:auto}
+.praan-encrypt-modal{border:1px solid #d9eceb;border-radius:18px;max-width:min(440px,calc(100% - 20px));width:100%;padding:24px;background:var(--bs-body-bg,#fff);color:var(--bs-body-color,#213344);box-shadow:0 24px 60px #0823316b}
+.praan-encrypt-modal::backdrop{background:#091d31a8}.praan-encrypt-modal h3{font-size:20px;font-weight:750}.praan-encrypt-modal p{color:#657682;font-size:14px}
+.praan-offline-notice{position:fixed;bottom:90px;left:16px;max-width:min(400px,calc(100% - 32px));background:#e5f5ed;color:#145a42;padding:12px 16px;border:1px solid #a6d5c5;border-radius:12px;z-index:4200;box-shadow:0 6px 25px #1a33452e}
+.praan-offline-notice[data-error="1"]{background:#fff0ed;color:#9e352a;border-color:#ffc7be}.praan-offline-notice[hidden]{display:none}
+
+html[data-praan-low-data="1"] .praan-page-transition{display:none!important}html[data-praan-low-data="1"] .praan-heart,html[data-praan-low-data="1"] .analytics-hero-art{animation:none!important}

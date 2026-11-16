@@ -1,0 +1,16 @@
+/* PRAAN media upload progress and persistent-layout early save. */
+.praan-media-toast{position:fixed;bottom:22px;left:22px;z-index:2650;width:min(365px,calc(100vw - 30px));background:#122b40;color:#f8fcff;border:1px solid #428e98;border-radius:15px;padding:14px 16px;box-shadow:0 15px 45px #0b1e3870;font-size:13px}
+.praan-media-toast[hidden],.praan-early-save[hidden]{display:none!important}
+.praan-media-top{display:flex;gap:9px;align-items:center;min-height:22px}
+.praan-media-indicator{font-size:18px}.praan-media-top strong{flex:1;font-weight:800}
+.praan-media-minimize{background:#ffffff18;border:1px solid #ffffff40;color:#fff;border-radius:8px;padding:2px 9px;font-weight:700}
+.praan-media-details{padding-top:9px}.praan-media-details p{color:#d5ecf1;margin:0 0 9px}
+.praan-media-details small{display:block;color:#a7cdd1;margin-top:7px}
+.praan-media-toast.compact .praan-media-details{display:none}
+.praan-media-track{height:9px;background:#4d677b;border-radius:20px;overflow:hidden}
+.praan-media-fill{width:0;height:100%;background:linear-gradient(90deg,#30dcae,#7de5ff);transition:width .16s ease;border-radius:20px}
+.praan-early-save{margin:15px 0 6px;background:var(--bs-success-bg-subtle,#d9f4e7);color:var(--bs-body-color,#123d43);border:1px solid #3fb28b;border-radius:14px;padding:18px;box-shadow:0 7px 20px #0000000b}
+.praan-early-save strong{font-size:17px}.praan-early-save p{margin:7px 0 12px}
+.praan-upload-help{display:block;margin-top:5px;color:var(--bs-secondary-color,#738093);font-size:11px;line-height:1.5}
+@media(max-width:575.98px){.praan-media-toast{left:12px;right:12px;bottom:12px;width:auto}}
+@media(prefers-reduced-motion:reduce){.praan-media-fill{transition:none}}

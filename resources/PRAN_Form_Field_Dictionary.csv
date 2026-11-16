@@ -1,0 +1,73 @@
+﻿section,field_key,form_label,input_type,options,admin_only
+header,form_no,"ফর্ম নং / Form No.",text,,no
+header,project,"প্রকল্প/কর্মসূচি / Project",text,,no
+header,registration_date,"নিবন্ধনের তারিখ",date,,no
+A,name_en,"নাম (ইংরেজি BLOCK LETTER)",text,,no
+A,name_bn,"নাম (বাংলায়)",text,,no
+A,gender,লিঙ্গ,select,"নারী | পুরুষ | অন্যান্য/বলতে অনিচ্ছুক",no
+A,dob,জন্মতারিখ,date,,no
+A,blood_group,"রক্তের গ্রুপ",select,"A+ | A- | B+ | B- | AB+ | AB- | O+ | O- | জানা নেই",no
+A,occupation,পেশা,text,,no
+A,education,"সর্বশেষ শিক্ষাগত যোগ্যতা",text,,no
+A,id_number,"জন্মনিবন্ধন / NID নং",text,,no
+A,phone,"মোবাইল নং",tel,,no
+A,alternate_phone,"বিকল্প মোবাইল নং",tel,,no
+A,whatsapp,"হোয়াটসঅ্যাপ নং",tel,,no
+A,email,ইমেইল,email,,no
+A,smartphone,"স্মার্টফোন ও ইন্টারনেট ব্যবহার",select,"হ্যাঁ | না",no
+A,mfs,"মোবাইল ফাইন্যান্সিয়াল সার্ভিস",multi,"বিকাশ | নগদ | রকেট | অন্যান্য",no
+A,mfs_ownership,"অ্যাকাউন্টের মালিকানা",select,"নিজ | অন্য",no
+A,mfs_relation,"অন্যের হলে সম্পর্ক",text,,no
+A,emergency_name,"জরুরি যোগাযোগের নাম",text,,no
+A,emergency_relation,"জরুরি যোগাযোগের সম্পর্ক",text,,no
+A,emergency_phone,"জরুরি যোগাযোগের মোবাইল",tel,,no
+A,mother_name,"মাতার নাম",text,,no
+A,mother_phone,"মাতার মোবাইল",tel,,no
+A,father_name,"পিতার নাম",text,,no
+A,father_phone,"পিতার মোবাইল",tel,,no
+B,present_holding,"বর্তমান: বাড়ি/হোল্ডিং",text,,no
+B,present_village,"বর্তমান: গ্রাম/মহল্লা",text,,no
+B,present_ward,"বর্তমান: ওয়ার্ড",text,,no
+B,present_union,"বর্তমান: ইউনিয়ন/পৌরসভা",text,,no
+B,present_upazila,"বর্তমান: উপজেলা/থানা",text,,no
+B,present_district,"বর্তমান: জেলা",text,,no
+B,permanent_holding,"স্থায়ী: বাড়ি/হোল্ডিং",text,,no
+B,permanent_village,"স্থায়ী: গ্রাম/মহল্লা",text,,no
+B,permanent_ward,"স্থায়ী: ওয়ার্ড",text,,no
+B,permanent_union,"স্থায়ী: ইউনিয়ন/পৌরসভা",text,,no
+B,permanent_upazila,"স্থায়ী: উপজেলা/থানা",text,,no
+B,permanent_district,"স্থায়ী: জেলা",text,,no
+C,interests,"যে ধরনের কাজে আগ্রহী",multi,"জরিপ/ডাটা সংগ্রহ | ত্রাণ বিতরণ | দুর্যোগ প্রস্তুতি ও সাড়াদান | কমিউনিটি মোবিলাইজেশন | সচেতনতা/ক্যাম্পেইন | ইভেন্ট/লজিস্টিক সাপোর্ট | প্রাথমিক চিকিৎসা | মিডিয়া/ডকুমেন্টেশন | শিশু/কিশোর কার্যক্রম | অন্যান্য",no
+C,interests_other,"অন্যান্য আগ্রহ",text,,no
+C,availability,"সাপ্তাহিক প্রাপ্যতা",multi,"কর্মদিবস | সাপ্তাহিক ছুটি | উভয়",no
+C,time_available,সময়,multi,"সকাল | বিকাল | সন্ধ্যা | জরুরি ডাক",no
+C,travel_scope,"ভ্রমণ/মাঠে কাজের প্রস্তুতি",multi,"নিজ ইউনিয়ন | উপজেলা | জেলা | দেশের অন্যত্র",no
+C,emergency_duty,"রাত/জরুরি সময়ে দায়িত্ব",select,"সম্ভব | সীমিত | সম্ভব নয়",no
+C,languages,"ভাষা দক্ষতা",text,,no
+C,special_skills,"বিশেষ দক্ষতা",text,,no
+C,digital_skills,"ডিজিটাল/প্রযুক্তিগত দক্ষতা",multi,"WhatsApp | Google Forms | KoBo/ODK | Excel/Sheets | GPS/Maps | ছবি/ভিডিও | Social Media | অন্যান্য",no
+C,digital_skills_other,"অন্যান্য প্রযুক্তিগত দক্ষতা",text,,no
+D,experience_summary,"স্বেচ্ছাসেবী কাজের সংক্ষিপ্ত অভিজ্ঞতা",textarea,,no
+E,support_needs,"নিরাপদে দায়িত্ব পালনে বিশেষ সহায়তা প্রয়োজন? (ঐচ্ছিক)",textarea,,no
+E,first_aid,"জরুরি পরিস্থিতিতে প্রাথমিক চিকিৎসা জানা",select,"হ্যাঁ | না",no
+E,swimming,"সাঁতার জানা",select,"হ্যাঁ | না",no
+E,transport,"নিজস্ব পরিবহন/যাতায়াত সুবিধা",multi,"সাইকেল | মোটরবাইক | অন্যান্য | নেই",no
+E,driving_license,"ড্রাইভিং লাইসেন্স ধরণ/নং",text,,no
+F,consents,"সম্মতি ও আচরণবিধি",multi,"সংস্থার আচরণবিধি, নিরাপত্তা নির্দেশনা ও দায়িত্ব বণ্টন মেনে চলব | শিশু সুরক্ষা, Safeguarding/PSEA এবং বৈষম্যহীন আচরণ বজায় রাখব | দায়িত্ব পালনে প্রাপ্ত গোপনীয় তথ্য অনুমতি ছাড়া প্রকাশ করব না | নিবন্ধন, যোগাযোগ, দায়িত্ব বণ্টন ও রিপোর্টিংয়ের জন্য তথ্য ব্যবহারে সম্মত | জরুরি অবস্থায় জরুরি যোগাযোগ ব্যক্তির সঙ্গে যোগাযোগে সম্মত | ছবি/ভিডিও/অডিও প্রচার ও প্রকাশে আলাদাভাবে সম্মত (ঐচ্ছিক)",no
+F,volunteer_sign_name,"স্বেচ্ছাসেবকের স্বাক্ষরকারী নাম",text,,no
+F,volunteer_sign_date,"স্বাক্ষরের তারিখ",date,,no
+F,collector_sign_name,"তথ্য সংগ্রহকারীর নাম",text,,no
+F,collector_sign_date,"তথ্য সংগ্রহকারীর স্বাক্ষরের তারিখ",date,,no
+G,attachments,সংযুক্তি,multi,"জন্মনিবন্ধন/NID ফটোকপি | শিক্ষাগত যোগ্যতার প্রমাণ | অভিজ্ঞতা/প্রশিক্ষণ সনদ | ১ কপি পাসপোর্ট সাইজ ছবি | অন্যান্য",no
+G,attachments_other,"অন্যান্য সংযুক্তি",text,,no
+H,document_check,"ডকুমেন্ট যাচাই",select,"সম্পূর্ণ | অসম্পূর্ণ",yes
+H,reference_check,"রেফারেন্স যাচাই",select,"হয়েছে | প্রয়োজন নেই | বাকি",yes
+H,orientation_date,"ওরিয়েন্টেশন তারিখ",date,,yes
+H,category,"স্বেচ্ছাসেবক ক্যাটাগরি",select,"সাধারণ | জরুরি সাড়া | দক্ষ",yes
+H,assigned_team,"নির্ধারিত এলাকা/টিম",text,,yes
+H,status,স্ট্যাটাস,select,"সক্রিয় | অপেক্ষমাণ | নির্বাচিত নয়",yes
+H,card_issued,"আইডি/কার্ড ইস্যু",select,"হ্যাঁ | না",yes
+H,card_issue_date,"কার্ড ইস্যুর তারিখ",date,,yes
+H,approver_name,"অনুমোদনকারী নাম/পদবি",text,,yes
+H,approver_date,"অনুমোদনের তারিখ",date,,yes
+H,office_notes,"মন্তব্য/বিশেষ নির্দেশনা",textarea,,yes

@@ -1,0 +1,34 @@
+{
+  "title": "Excel / CSV Import",
+  "description": "প্রিভিউ, ডুপ্লিকেট যাচাই ও নিরাপদ bulk import",
+  "requires": [
+    "volunteer_core"
+  ],
+  "routes": [
+    "import",
+    "import_preview",
+    "import_commit",
+    "import_cancel",
+    "template",
+    "template_full",
+    "template_google"
+  ],
+  "features": {},
+  "settings": {
+    "max_file_mb": {
+      "title": "Import ফাইলের সর্বোচ্চ আকার",
+      "type": "select",
+      "default": "8",
+      "choices": {
+        "2": "২ MB",
+        "4": "৪ MB",
+        "8": "৮ MB",
+        "16": "১৬ MB"
+      }
+    }
+  },
+  "id": "import",
+  "version": "1.7.0",
+  "core": false,
+  "default_enabled": true
+}

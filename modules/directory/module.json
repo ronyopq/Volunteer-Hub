@@ -1,0 +1,28 @@
+{
+  "title": "Public Volunteer Directory",
+  "description": "অনুমতিপ্রাপ্ত স্বেচ্ছাসেবকের সীমিত পাবলিক প্রোফাইল",
+  "requires": [
+    "volunteer_core"
+  ],
+  "routes": [
+    "directory"
+  ],
+  "features": {},
+  "settings": {
+    "max_cards": {
+      "title": "পাবলিক তালিকায় সর্বোচ্চ প্রোফাইল",
+      "type": "select",
+      "default": "100",
+      "choices": {
+        "25": "২৫",
+        "50": "৫০",
+        "100": "১০০",
+        "200": "২০০"
+      }
+    }
+  },
+  "id": "directory",
+  "version": "1.7.0",
+  "core": false,
+  "default_enabled": true
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Secure Update & Backup",
+  "description": "Signed Release যাচাই, ব্যাকআপ ও Rollback",
+  "core": true,
+  "requires": [
+    "identity_core"
+  ],
+  "routes": [],
+  "features": {},
+  "settings": {},
+  "id": "updates_core",
+  "version": "1.7.0",
+  "default_enabled": true
+}
