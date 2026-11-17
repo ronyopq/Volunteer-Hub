@@ -22,8 +22,11 @@ function site_head(string $title): void {
     <title><?= e($title) ?> | <?=e(praan_option('site_title'))?></title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.16.0/styles/overlayscrollbars.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.10.0/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.css?v=<?= APP_VERSION ?>">
+    <link rel="stylesheet" href="assets/vendor/libs/node-waves/node-waves.css?v=<?= APP_VERSION ?>">
+    <link rel="stylesheet" href="assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css?v=<?= APP_VERSION ?>">
+    <link rel="stylesheet" href="assets/vendor/css/core.css?v=<?= APP_VERSION ?>">
+    <link rel="stylesheet" href="assets/css/demo.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/layout-fallback.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/app.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/analytics.css?v=<?= APP_VERSION ?>">
@@ -38,15 +41,23 @@ function site_head(string $title): void {
     <link rel="stylesheet" href="assets/praan-mobile.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/praan-identity.css?v=<?= APP_VERSION ?>">
     <link rel="stylesheet" href="assets/praan-notifications.css?v=<?= APP_VERSION ?>">
+    <script src="assets/vendor/js/helpers.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/vendor/js/template-customizer.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/js/config.js?v=<?= APP_VERSION ?>"></script>
     <style>:root{--accent:<?=e($accent)?>;--accent-dark:<?=e($accent)?>}</style>
     <script>try{document.documentElement.setAttribute('data-bs-theme',localStorage.getItem('pran_theme')||'light')}catch(e){}</script>
     </head><?php
 }
 function site_scripts(): void { ?>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.16.0/browser/overlayscrollbars.browser.es6.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/admin-lte@4.10.0/dist/js/adminlte.min.js"></script>
+    <script src="assets/vendor/libs/jquery/jquery.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/vendor/libs/popper/popper.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/vendor/js/bootstrap.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/vendor/libs/node-waves/node-waves.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/vendor/js/helpers.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/vendor/js/menu.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/js/config.js?v=<?= APP_VERSION ?>"></script>
+    <script src="assets/js/main.js?v=<?= APP_VERSION ?>"></script>
     <script src="assets/app.js?v=<?= APP_VERSION ?>"></script>
     <script src="assets/volunteer-table.js?v=<?= APP_VERSION ?>"></script>
     <script src="assets/praan-foundation.js?v=<?= APP_VERSION ?>"></script>
@@ -60,14 +71,23 @@ function site_scripts(): void { ?>
 function page_start(string $title, string $active = '', bool $dashboard = false): void {
     site_head($title);
     if ($dashboard && admin()): ?>
-    <body class="layout-fixed sidebar-expand-lg bg-body-tertiary admin-layout"><div class="app-wrapper">
-        <nav class="app-header navbar navbar-expand bg-body border-bottom">
-            <div class="container-fluid"><ul class="navbar-nav"><li class="nav-item"><a class="nav-link" data-lte-toggle="sidebar" href="#" id="pranSidebarToggle" aria-expanded="true" aria-controls="pranAdminSidebar" aria-label="সাইডবার মেনু"><i class="bi bi-list fs-5"></i></a></li></ul>
-            <div class="top-search d-none d-md-flex"><form action="index.php" method="get" class="d-flex"><input type="hidden" name="page" value="volunteers"><i class="bi bi-search"></i><input type="search" name="q" placeholder="নাম, মোবাইল বা ID দিয়ে খুঁজুন..." aria-label="Search"></form></div>
-            <div class="ms-auto d-flex align-items-center gap-2 gap-md-3"><?php if(praan_enabled('notifications_enabled')):?><?=praan_notification_bell_html(db(),(int)admin_id())?><?php endif;?><?php if(praan_enabled('command_palette_enabled')):?><button type="button" class="icon-button praan-command-trigger" data-praan-command-open title="Command Palette Ctrl+K" aria-label="দ্রুত সার্চ"><i class="bi bi-command"></i></button><?php endif;?><button type="button" class="icon-button praan-install-trigger" data-praan-install hidden title="Install PRAAN" aria-label="অ্যাপ ইনস্টল করুন"><i class="bi bi-download"></i></button><button type="button" class="icon-button theme-toggle" title="ডার্ক মোড"><i class="bi bi-moon-stars"></i></button><?php if(praan_can('volunteers.create')):?><a href="<?=e(url('new'))?>" class="btn btn-brand btn-sm"><i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">নতুন এন্ট্রি</span></a><?php endif;?><a class="admin-initial" href="<?=e(url('profile'))?>" title="<?=e($_SESSION['admin_name'] ?? 'Profile')?>"><?=e(praan_initial((string)($_SESSION['admin_name']??'A')))?></a></div></div>
-        </nav>
-        <aside class="app-sidebar shadow" id="pranAdminSidebar" data-bs-theme="dark"><div class="sidebar-brand"><a href="<?=e(url('dashboard'))?>" class="brand-link"><img src="assets/pran-logo.png" alt="PRAAN" class="sidebar-logo"><span class="brand-text"><?=e(praan_option('site_title'))?> <small><?=e(praan_option('site_tagline'))?></small></span></a></div>
-        <div class="sidebar-wrapper"><nav class="mt-3"><ul class="nav sidebar-menu flex-column" role="menu">
+    <body class="layout-navbar-fixed layout-menu-fixed layout-compact" data-bs-theme="light">
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+            <aside id="layout-menu" class="layout-menu menu-vertical menu" data-bs-theme="dark">
+                <div class="app-brand demo">
+                    <a href="<?=e(url('dashboard'))?>" class="app-brand-link">
+                        <span class="app-brand-logo demo">
+                            <img src="assets/pran-logo.png" alt="PRAAN">
+                        </span>
+                        <span class="app-brand-text demo menu-text fw-semibold ms-2"><?=e(praan_option('site_title'))?></span>
+                    </a>
+                    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
+                        <i class="bi bi-list fs-5"></i>
+                    </a>
+                </div>
+                <div class="menu-inner-shadow"></div>
+                <ul class="menu-inner py-1">
             <?php
             $menuGroups=[
               'OVERVIEW'=>[['dashboard','bi-grid-1x2','ড্যাশবোর্ড'],['volunteers','bi-people','স্বেচ্ছাসেবক তালিকা'],['new','bi-person-plus','নতুন নিবন্ধন']],
@@ -88,11 +108,58 @@ function page_start(string $title, string $active = '', bool $dashboard = false)
             }
             ?>
             <li class="nav-header">PUBLIC ACCESS</li>
-            <li class="nav-item"><a href="<?=e(url('home'))?>" class="nav-link"><i class="nav-icon bi bi-globe"></i><p>পাবলিক পোর্টাল</p></a></li>
-            <?php if(praan_enabled('public_directory_enabled')&&praan_module_access('directory')):?><li class="nav-item"><a href="<?=e(url('directory'))?>" class="nav-link"><i class="nav-icon bi bi-card-list"></i><p>পাবলিক ডিরেক্টরি</p></a></li><?php endif;?>
-            <li class="nav-item"><form method="post" action="<?=e(url('logout'))?>"><?=csrf_field()?><button type="submit" class="nav-link praan-logout-btn"><i class="nav-icon bi bi-box-arrow-right"></i><p>লগআউট</p></button></form></li>
-        </ul></nav><div class="sidebar-bottom"><span class="version-dot"></span> v<?=APP_VERSION?> <?php if(praan_enabled('developer_badge_enabled'))praan_credit_badge(); ?></div></div></aside>
-        <main class="app-main"><div class="app-content-header"><div class="container-fluid"><div class="d-flex align-items-center justify-content-between flex-wrap gap-2"><div><div class="eyebrow">PRAAN / VOLUNTEER DATABASE</div><h1 class="page-heading"><?=e($title)?></h1></div><div class="header-date"><i class="bi bi-calendar3"></i> <?=e(date('d M Y'))?></div></div></div></div><div class="app-content"><div class="container-fluid">
+            <li class="nav-item"><a href="<?=e(url('home'))?>" class="menu-link"><i class="menu-icon icon-base bi bi-globe"></i><div>পাবলিক পোর্টাল</div></a></li>
+            <?php if(praan_enabled('public_directory_enabled')&&praan_module_access('directory')):?><li class="nav-item"><a href="<?=e(url('directory'))?>" class="menu-link"><i class="menu-icon icon-base bi bi-card-list"></i><div>পাবলিক ডিরেক্টরি</div></a></li><?php endif;?>
+            <li class="nav-item"><form method="post" action="<?=e(url('logout'))?>"><?=csrf_field()?><button type="submit" class="menu-link praan-logout-btn"><i class="menu-icon icon-base bi bi-box-arrow-right"></i><div>লগআউট</div></button></form></li>
+        </ul>
+            </aside>
+            <div class="menu-mobile-toggler d-xl-none rounded-1">
+                <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-bg-secondary p-2 rounded-1">
+                    <i class="bi bi-menu-line icon-base"></i>
+                    <i class="bi bi-arrow-right-s-line icon-base"></i>
+                </a>
+            </div>
+            <div class="layout-page">
+                <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
+                    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-4 me-xl-0 d-xl-none">
+                        <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
+                            <i class="bi bi-list icon-22px"></i>
+                        </a>
+                    </div>
+                    <div class="navbar-nav-right d-flex align-items-center justify-content-end" id="navbar-collapse">
+                        <div class="navbar-nav align-items-center">
+                            <div class="nav-item dropdown me-2 me-xl-0">
+                                <a class="nav-link dropdown-toggle hide-arrow" id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <i class="bi bi-moon-stars icon-22px theme-icon-active"></i>
+                                    <span class="d-none ms-2" id="nav-theme-text">ডার্ক মোড</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="nav-theme-text">
+                                    <li><button type="button" class="dropdown-item align-items-center active" data-bs-theme-value="light" aria-pressed="false"><span><i class="bi bi-sun icon-22px me-3" data-icon="sun-line"></i>লাইট</span></button></li>
+                                    <li><button type="button" class="dropdown-item align-items-center" data-bs-theme-value="dark" aria-pressed="true"><span><i class="bi bi-moon-stars icon-22px me-3" data-icon="moon-clear-line"></i>ডার্ক</span></button></li>
+                                    <li><button type="button" class="dropdown-item align-items-center" data-bs-theme-value="system" aria-pressed="false"><span><i class="bi bi-pc-display icon-22px me-3" data-icon="computer-line"></i>সিস্টেম</span></button></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <ul class="navbar-nav flex-row align-items-center ms-md-auto">
+                            <?php if(praan_enabled('notifications_enabled')):?><li class="nav-item"><?=praan_notification_bell_html(db(),(int)admin_id())?></li><?php endif;?><?php if(praan_enabled('command_palette_enabled')):?><li class="nav-item"><button type="button" class="nav-link icon-button praan-command-trigger" data-praan-command-open title="Command Palette Ctrl+K" aria-label="দ্রুত সার্চ"><i class="bi bi-command icon-22px"></i></button></li><?php endif;?><li class="nav-item"><button type="button" class="nav-link icon-button praan-install-trigger" data-praan-install hidden title="অ্যাপ ইনস্টল করুন" aria-label="অ্যাপ ইনস্টল করুন"><i class="bi bi-download icon-22px"></i></button></li><li class="nav-item"><button type="button" class="nav-link icon-button theme-toggle" title="ডার্ক মোড"><i class="bi bi-moon-stars icon-22px"></i></button></li><?php if(praan_can('volunteers.create')):?><li class="nav-item"><a href="<?=e(url('new'))?>" class="nav-link btn btn-brand btn-sm"><i class="bi bi-plus-lg icon-22px me-2"></i><span class="d-none d-sm-inline">নতুন এন্ট্রি</span></a></li><?php endif;?><li class="nav-item navbar-dropdown dropdown-user dropdown">
+                                <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <div class="avatar avatar-online"><img src="assets/img/avatars/1.png" alt="avatar" class="rounded-circle"></div>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#"><div class="d-flex"><div class="flex-shrink-0 me-3"><div class="avatar avatar-online"><img src="assets/img/avatars/1.png" alt="avatar" class="w-px-40 h-auto rounded-circle"></div></div><div class="flex-grow-1"><h6 class="mb-0"><?=e($_SESSION['admin_name'] ?? 'Admin')?></h6><small class="text-body-secondary">অ্যাডমিন</small></div></div></a></li>
+                                    <li><div class="dropdown-divider my-1"></div></li>
+                                    <li><a class="dropdown-item" href="<?=e(url('profile'))?>"><i class="bi bi-person-line icon-22px me-3"></i><span>আমার প্রোফাইল</span></a></li>
+                                    <li><a class="dropdown-item" href="<?=e(url('settings'))?>"><i class="bi bi-sliders icon-22px me-3"></i><span>সেটিংস</span></a></li>
+                                    <li><div class="dropdown-divider my-1"></div></li>
+                                    <li><div class="d-grid px-4 pt-2 pb-1"><form method="post" action="<?=e(url('logout'))?>"><?=csrf_field()?><button type="submit" class="btn btn-danger d-flex"><small class="align-middle">লগআউট</small><i class="bi bi-box-arrow-right ms-2 icon-16px"></i></button></form></div></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+                <div class="content-wrapper">
+                    <div class="container-xxl flex-grow-1 container-p-y">
+                        <div class="app-content-header"><div class="container-fluid"><div class="d-flex align-items-center justify-content-between flex-wrap gap-2"><div><div class="eyebrow">PRAAN / VOLUNTEER DATABASE</div><h1 class="page-heading"><?=e($title)?></h1></div><div class="header-date"><i class="bi bi-calendar3"></i> <?=e(date('d M Y'))?></div></div></div></div><div class="app-content"><div class="container-fluid">
     <?php else: ?>
     <body class="public-body"><div class="public-shell"><header class="public-nav"><div class="public-nav-inner"><a href="<?=e(url('home'))?>" class="public-brand"><img src="assets/pran-logo.png" alt="PRAAN"><span><?=e(praan_option('site_title'))?><small><?=e(praan_option('site_tagline'))?></small></span></a><div class="public-links"><button class="icon-button praan-install-trigger" type="button" data-praan-install hidden title="অ্যাপ ইনস্টল করুন" aria-label="অ্যাপ ইনস্টল করুন"><i class="bi bi-download"></i></button><a href="<?=e(url('home'))?>" class="<?= $active==='home'?'chosen':''?>">হোম</a><?php if(praan_enabled('public_directory_enabled')&&praan_module_access('directory')):?><a href="<?=e(url('directory'))?>" class="<?= $active==='directory'?'chosen':''?>">স্বেচ্ছাসেবক তালিকা</a><?php endif;?><?php if(praan_enabled('public_registration_enabled')):?><a href="<?=e(url('register'))?>" class="btn btn-brand btn-sm">নিবন্ধন করুন</a><?php endif;?><a href="<?=e(url(admin()?'dashboard':'login'))?>" class="nav-login"><i class="bi bi-shield-lock"></i> অ্যাডমিন</a><button type="button" class="icon-button theme-toggle" aria-label="Toggle theme"><i class="bi bi-moon-stars"></i></button></div></div></header><main class="public-main">
     <?php endif;
@@ -152,7 +219,10 @@ function praan_mobile_widgets(): void {
 }
 function page_end(bool $dashboard = false): void {
     if ($dashboard && admin()): ?>
-        </div></div></main><?php praan_mobile_bottom_nav(); ?><footer class="app-footer"><div class="float-end">v<?=APP_VERSION?> <?php if(praan_enabled('developer_badge_enabled'))praan_credit_badge(); ?></div><strong>© <?=date('Y')?> PRAAN Network</strong></footer></div>
+        </div></div></div></div></div></div>
+        <div class="layout-overlay layout-menu-toggle"></div>
+        <div class="drag-target"></div>
+    </div><?php praan_mobile_bottom_nav(); ?><footer class="app-footer"><div class="float-end">v<?=APP_VERSION?> <?php if(praan_enabled('developer_badge_enabled'))praan_credit_badge(); ?></div><strong>© <?=date('Y')?> PRAAN Network</strong></footer>
     <?php else: ?>
         </main><?php praan_mobile_bottom_nav(); ?><footer class="public-footer"><div><strong>PRAAN Volunteer Hub</strong><p>একসাথে মানবিক কার্যক্রম, একসাথে পরিবর্তন।</p></div><div><?php if(praan_enabled('public_registration_enabled')):?><a href="<?=e(url('register'))?>">নিবন্ধন</a><?php endif;?><?php if(praan_enabled('public_directory_enabled')&&praan_module_access('directory')):?><a href="<?=e(url('directory'))?>">পাবলিক তালিকা</a><?php endif;?><a href="<?=e(url('login'))?>">অ্যাডমিন লগইন</a></div><small>© <?=date('Y')?> PRAAN Network · v<?=APP_VERSION?> <?php if(praan_enabled('developer_badge_enabled'))praan_credit_badge(); ?></small></footer></div>
     <?php endif; praan_developer_modal(); praan_mobile_widgets(); site_scripts(); echo '</body></html>';
